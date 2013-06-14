@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name" >AutoTextReplay
-    </string>
-    <string name="action_settings" >Settings
-    </string>
-    <string name="hello_world" >Hello world!
-    </string>
+    <string name="time">Time</string>
+    <string name="app_name">AutoTextRespone</string>
+    <string name="forTime">For</string>
+    <string name="upTo">Up to</string>
+    <string name="message">Response message</string>
+    <string name="sendEmail">Send e-mail too</string>
+    <string name="answer_frequency">Answer Interval</string>
+    <string name="set_up_to_time">Set up to time</string>
+    <string name="set_time_duration">Set time duration</string>
+    <string name="event">event</string>
+    <string name="min">m</string>
+    <string name="hour">h</string>
+    <string name="day">day</string>
+    <string name="days">days</string>
+    <string name="eachTime1">Answer</string>
+    <string name="eachTime2">each time</string>
+    <string name="intervalF1">Select how often respond to each caller.</string>
+    <string name="oneAnswerPer">One answer per</string>
+    <string name="location">Add location</string>
 
 </resources>
