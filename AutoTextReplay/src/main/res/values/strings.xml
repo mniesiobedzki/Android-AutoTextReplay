@@ -20,5 +20,13 @@
     <string name="intervalF1">Select how often respond to each caller.</string>
     <string name="oneAnswerPer">One answer per</string>
     <string name="location">Add location</string>
+    <string name="will_be_activate_for_to">Will be active for/to</string>
+    <string name="clockIcon">clockIcon</string>
+    <string name="x_h_y_min">Xh Ymin</string>
+    <string name="fifteen">15min</string>
+    <string name="activated">Activated</string>
+    <string name="deactivated">Deactivated</string>
+    <string name="forTimeIconDesc">forTimeIcon</string>
+    <string name="action_settings">Action Settings todo</string>
 
 </resources>
