@@ -66,26 +66,23 @@ public class AutoTextReplayMainActivity extends Activity {
 
     /* interval duration seek bar */
     private SeekBar intervalSeekBar;
+    int answerIntervalTime;
     private SeekBar.OnSeekBarChangeListener intervalSeekBarListener = new SeekBar.OnSeekBarChangeListener() {
-
-
 
         @Override
         public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-            Log.d(TAG, "onStopTrackingTouch: " + seekBar.getProgress());
-            //TODO: seekbar impementation
+            Log.d(TAG, "onProgressChanged: " + seekBar.getProgress());
+            answerIntervalTime = seekBarToMinutes(seekBar.getProgress());
         }
 
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
             Log.d(TAG, "onStartTrackingTouch: " + seekBar.getProgress());
-            //TODO: seekbar impementation
         }
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
             Log.d(TAG, "onStopTrackingTouch: " + seekBar.getProgress());
-            //TODO: seekbar impementation
         }
     };
 
@@ -182,6 +179,45 @@ public class AutoTextReplayMainActivity extends Activity {
             //messageEmail.setChecked(state.getBoolean("isEmail"));
             intervalSeekBar.setProgress(state.getInt("duration"));
         }
+    }
+
+    /**
+     * Converts seekbar position from 0..100 progress to time durations and changes application view
+     *
+     * @param progress - seekbar state as integer 0..100
+     * @return - minutes of response interval
+     */
+    private int seekBarToMinutes(int progress) {
+        Integer[] timeInMinutes = { 0, 5, 30, 60, 120, 240, 720, 1440, 2880, 10080,
+                20160, -1 };
+        int[] timesS = { 0, 5, 30, 1, 2, 4, 8, 1, 2, 7, 14, -1 };
+        int group = (int) (progress / 8.4);
+        Log.d(TAG, "seekBarToMinutes(" + progress + ") " + progress + "/12="
+                + group + " timeInMinutes[" + group + "]=" + timeInMinutes[group]);
+        if (group == 0) {
+            interval_freq_desc_textView.setText(getString(R.string.eachTime1) + " ");
+            interval_freq_number_textView.setText(getString(R.string.eachTime2) + " ");
+        } else if (group > 0 && group < 3) {
+            interval_freq_desc_textView.setText(getString(R.string.oneAnswerPer) + " ");
+            interval_freq_number_textView
+                    .setText(timesS[group] + getString(R.string.min) + " ");
+        } else if (group > 2 && group < 7) {
+            interval_freq_desc_textView.setText(getString(R.string.oneAnswerPer) + " ");
+            interval_freq_number_textView.setText(timesS[group] + getString(R.string.hour)
+                    + " ");
+        } else if (group == 7) {
+            interval_freq_desc_textView.setText(getString(R.string.oneAnswerPer) + " ");
+            interval_freq_number_textView
+                    .setText(timesS[group] + getString(R.string.day) + " ");
+        } else if (group > 7 && group < 11) {
+            interval_freq_desc_textView.setText(getString(R.string.oneAnswerPer) + " ");
+            interval_freq_number_textView.setText(timesS[group] + getString(R.string.days)
+                    + " ");
+        } else {
+            interval_freq_desc_textView.setText(getString(R.string.oneAnswerPer) + " ");
+            interval_freq_number_textView.setText(getString(R.string.event) + " ");
+        }
+        return timeInMinutes[group];
     }
 
 }
