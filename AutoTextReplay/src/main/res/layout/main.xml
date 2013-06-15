@@ -300,7 +300,7 @@
                         android:textSize="14sp"/>
 
                 <TextView
-                        android:id="@+id/Main_Answer_Frequency_textView1"
+                        android:id="@+id/Main_Answer_Frequency_DESC_textView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentLeft="true"
@@ -315,12 +315,12 @@
                         android:textColor="#000"/>
 
                 <TextView
-                        android:id="@+id/Main_Answer_Frequency_textView2"
+                        android:id="@+id/Main_Answer_Frequency_NUMBER_textView"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_alignBaseline="@+id/Main_Answer_Frequency_textView1"
-                        android:layout_alignBottom="@+id/Main_Answer_Frequency_textView1"
-                        android:layout_toRightOf="@+id/Main_Answer_Frequency_textView1"
+                        android:layout_alignBaseline="@+id/Main_Answer_Frequency_DESC_textView"
+                        android:layout_alignBottom="@+id/Main_Answer_Frequency_DESC_textView"
+                        android:layout_toRightOf="@+id/Main_Answer_Frequency_DESC_textView"
                         android:text="@string/fifteen"
                         android:textAppearance="?android:attr/textAppearanceMedium"
                         android:textColor="#ff0000"/>
@@ -330,7 +330,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_alignParentLeft="true"
-                        android:layout_below="@+id/Main_Answer_Frequency_textView1"
+                        android:layout_below="@+id/Main_Answer_Frequency_DESC_textView"
                         android:layout_margin="5dp"
                         android:paddingLeft="10dp"
                         android:paddingRight="10dp"
