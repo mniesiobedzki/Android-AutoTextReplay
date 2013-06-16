@@ -1,16 +1,27 @@
 package pl.niesiobedzki.marek.autotextreplay;
 
+import android.app.Dialog;
+import android.content.Context;
+import android.location.GpsStatus;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import java.util.List;
+
+import pl.niesiobedzki.marek.autotextreplay.location.MyLocation;
+import pl.niesiobedzki.marek.autotextreplay.location.MyLocationListener;
 
 /**
  * Main activity class
@@ -30,6 +41,7 @@ public class AutoTextReplayMainActivity extends Activity {
     private RelativeLayout timeForRelativeLayout;
     private RelativeLayout timeUpToRelativeLayout;
     private RelativeLayout timeSelectedRelativeLayout;
+    private MyLocationListener locationListener;
 
     /**
      * MESSAGE section
@@ -37,6 +49,10 @@ public class AutoTextReplayMainActivity extends Activity {
 
     /* Message provided by user, which will replay for incoming connections and text */
     private EditText messageEditText;
+   private CheckBox addLicationCheckBox;
+    private boolean addLocation = false;
+
+    //private LocationManager locationManager;
 
     //TODO: e-mail sender to send e-mials and text both together
 
@@ -87,16 +103,18 @@ public class AutoTextReplayMainActivity extends Activity {
     };
 
     /**
-     *
+     * Listener for clicks
      */
     private View.OnClickListener mClickListener = new View.OnClickListener() {
 
         @Override
         public void onClick(View view) {
             if (view.getId() == timeForRelativeLayout.getId()) {
+                /* for time */
                 Log.d(TAG, "View.OnClickListener mClickListener.onClick( TIME_FOR_LAYOUT )");
                 //TODO: for time button implementation
             } else if (view.getId() == timeUpToRelativeLayout.getId()) {
+                /* Up To time */
                 Log.d(TAG, "View.OnClickListener mClickListener.onClick( TIME_UP_TO_LAYOUT )");
                 //TODO: up to time button implementation
             } else {
@@ -105,6 +123,36 @@ public class AutoTextReplayMainActivity extends Activity {
 
         }
     };
+
+    /**
+     * Listener for Checkboxes
+     */
+    private CompoundButton.OnCheckedChangeListener mOnCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+            Log.d(TAG, "CheckBox Listener");
+
+            if(compoundButton.getId() == addLicationCheckBox.getId()){
+                /* add location checkbox */
+                Log.d(TAG, "Checkbox Add location " + b);
+                if(b){
+
+                    //TODO: check if GPS is On and display msg to the user http://www.vogella.com/articles/AndroidLocationAPI/article.html 2.8
+
+                    addLocation = true;
+                    myLocation.requestLocationUpdates();
+                    //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,10,locationListener);
+                } else {
+                    addLocation = false;
+                    //locationManager.removeGpsStatusListener((GpsStatus.Listener) locationListener);
+                    myLocation.removeGpsStatusListener();
+                }
+            } else {
+                Log.w(TAG, "Unhandled OnCheckedChangeListener for compoundButton " + (compoundButton.getId()));
+            }
+        }
+    };
+    private MyLocation myLocation;
 
 
     @Override
@@ -131,6 +179,9 @@ public class AutoTextReplayMainActivity extends Activity {
         messageEditText.setFocusable(false);
         messageEditText.setFocusableInTouchMode(true);
 
+        addLicationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
+        addLicationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
+
         interval_freq_desc_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_DESC_textView);
         interval_freq_number_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_NUMBER_textView);
 
@@ -144,6 +195,10 @@ public class AutoTextReplayMainActivity extends Activity {
 
         restoreMe(savedInstanceState);
 
+        /* LOCATION */
+//        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//        locationListener = new MyLocationListener();
+        myLocation = new MyLocation(getApplicationContext());
     }
 
 
