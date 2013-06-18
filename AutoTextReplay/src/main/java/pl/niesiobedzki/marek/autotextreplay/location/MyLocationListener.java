@@ -10,6 +10,8 @@ import android.util.Log;
  */
 public class MyLocationListener implements LocationListener {
 
+    private static final String TAG = "MyLocationListener";
+
     private double latitude = 0;
     private double atitude = 0;
     private double lognitude = 0;
@@ -20,21 +22,22 @@ public class MyLocationListener implements LocationListener {
         atitude = location.getAltitude();
         lognitude = location.getLongitude();
 
-        Log.i("GPS", "LATITUDE: " + latitude + ", LONGITUDE: "+lognitude + ", ATITUDE: "+atitude + ", PROVIDER: "+location.getProvider());
+        Log.i("GPS", "LATITUDE: " + latitude + ", LONGITUDE: " + lognitude + ", ATITUDE: " + atitude + ", PROVIDER: " + location.getProvider());
     }
 
     @Override
     public void onStatusChanged(String s, int i, Bundle bundle) {
+        Log.d(TAG, "MyLocationListener.onStatusChanged(" + s + ", " + i + ", bundle)");
 
     }
 
     @Override
     public void onProviderEnabled(String s) {
-
+        Log.d(TAG, "MyLocationListener.onProviderEnabled(" + s + ")");
     }
 
     @Override
     public void onProviderDisabled(String s) {
-
+        Log.d(TAG, "MyLocationListener.onProviderDisabled(" + s + ")");
     }
 }

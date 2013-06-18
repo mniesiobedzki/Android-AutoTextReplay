@@ -1,12 +1,16 @@
 package pl.niesiobedzki.marek.autotextreplay;
 
-import android.app.Dialog;
+import android.content.ComponentName;
 import android.content.Context;
-import android.location.GpsStatus;
-import android.location.Location;
-import android.location.LocationManager;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.app.Activity;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
@@ -18,10 +22,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import java.util.List;
-
-import pl.niesiobedzki.marek.autotextreplay.location.MyLocation;
-import pl.niesiobedzki.marek.autotextreplay.location.MyLocationListener;
+import pl.niesiobedzki.marek.autotextreplay.service.AutoTextRespondService;
 
 /**
  * Main activity class
@@ -41,7 +42,8 @@ public class AutoTextReplayMainActivity extends Activity {
     private RelativeLayout timeForRelativeLayout;
     private RelativeLayout timeUpToRelativeLayout;
     private RelativeLayout timeSelectedRelativeLayout;
-    private MyLocationListener locationListener;
+
+    private long finishTime;
 
     /**
      * MESSAGE section
@@ -69,16 +71,17 @@ public class AutoTextReplayMainActivity extends Activity {
         public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             if (isChecked) {
                 Log.d(TAG, "ToggleButton Activated");
-                //TODO: service start
+                sendNewRespondAction();
             } else {
                 Log.d(TAG, "ToggleButton Deactivated");
-                //TODO: service stop
+                sendRespondActionCancelation();
             }
         }
     };
 
     private TextView interval_freq_desc_textView;
     private TextView interval_freq_number_textView;
+    private int responseIntervalMIN = 0;
 
     /* interval duration seek bar */
     private SeekBar intervalSeekBar;
@@ -140,19 +143,19 @@ public class AutoTextReplayMainActivity extends Activity {
                     //TODO: check if GPS is On and display msg to the user http://www.vogella.com/articles/AndroidLocationAPI/article.html 2.8
 
                     addLocation = true;
-                    myLocation.requestLocationUpdates();
+                   // myLocation.requestLocationUpdates();
                     //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,10,locationListener);
                 } else {
                     addLocation = false;
                     //locationManager.removeGpsStatusListener((GpsStatus.Listener) locationListener);
-                    myLocation.removeGpsStatusListener();
+                   // myLocation.removeGpsStatusListener();
                 }
             } else {
                 Log.w(TAG, "Unhandled OnCheckedChangeListener for compoundButton " + (compoundButton.getId()));
             }
         }
     };
-    private MyLocation myLocation;
+
 
 
     @Override
@@ -160,6 +163,9 @@ public class AutoTextReplayMainActivity extends Activity {
         super.onCreate(savedInstanceState);
         Log.i(TAG, "Main Activity onCreate()");
         setContentView(R.layout.main);
+
+        /* TIME */
+        this.finishTime = 0;
 
         /* For time Layout */
         timeForRelativeLayout = (RelativeLayout) findViewById(R.id.Main_Time_FOR_Layout);
@@ -195,10 +201,12 @@ public class AutoTextReplayMainActivity extends Activity {
 
         restoreMe(savedInstanceState);
 
-        /* LOCATION */
-//        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//        locationListener = new MyLocationListener();
-        myLocation = new MyLocation(getApplicationContext());
+    }
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.i(TAG, "onResume()");
+        CheckIfServiceIsRunning();
     }
 
 
@@ -274,5 +282,154 @@ public class AutoTextReplayMainActivity extends Activity {
         }
         return timeInMinutes[group];
     }
+
+    /**
+     * Recieved message from service
+     *
+     * @author marek niesiobędzki
+     *
+     */
+    class IncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case AutoTextRespondService.SERVICE_ACTIVATED:
+                    Log.d(TAG, "Service is activated");
+                    break;
+                case AutoTextRespondService.SERVICE_DEACTIVATED:
+                    Log.d(TAG, "Service is deactivated");
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
+
+    Messenger messageService = null;
+    /**
+     * Podpięcie Activity do Servisu
+     */
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            messageService = new Messenger(service);
+            Log.i(TAG, "Service Attached.");
+            try {
+                Message msg = Message.obtain(null,
+                        AutoTextRespondService.SERVICE_REGISTER_NEW_CLIENT);
+                msg.replyTo = messageService;
+                messageService.send(msg);
+            } catch (RemoteException e) {
+                // In this case the service has crashed before we could even do
+                // anything with it
+            }
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            // This is called when the connection with the service has been
+            // unexpectedly disconnected - process crashed.
+            messageService = null;
+            Log.i(TAG, "Service Disconnected!");
+        }
+    };
+
+    private boolean isBound = false;
+    private void CheckIfServiceIsRunning() {
+        // If the service is running when the activity starts, we want to
+        // automatically bind to it.
+        Log.i(TAG, "CheckIfServiceIsRunning()");
+        if (AutoTextRespondService.isRunning()) {
+            doBindService();
+        } else {
+            Intent serviceIntent = new Intent(this, AutoTextRespondService.class);
+            startService(serviceIntent);
+            doBindService();
+        }
+
+    }
+    /**
+     * Łączy activity z servisem
+     */
+    private void doBindService() {
+        Intent bindIndent = new Intent(this, AutoTextRespondService.class);
+               bindService(bindIndent,
+                serviceConnection, Context.BIND_AUTO_CREATE);
+        isBound = true;
+        Log.i(TAG, "Activity Bound to Service");
+    }
+
+    private void doUnBindService() {
+        if (isBound) {
+            // If we have received the service, and hence registered with it,
+            // then now is the time to unregister.
+            if (messageService != null) {
+                Message msg = Message.obtain(null,
+                        AutoTextRespondService.SERVICE_UNREGISTER_CLIENT);
+                msg.replyTo = messageService;
+                try {
+                    messageService.send(msg);
+                } catch (RemoteException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            unbindService(serviceConnection);
+            isBound = false;
+            Log.i(TAG, "Activity unBound to Service");
+        }
+    }
+
+    private void sendNewRespondAction() {
+        if (isBound) {
+            if (messageService != null) {
+                Message msg = Message.obtain(null,
+                        AutoTextRespondService.MSG_SET_RESPOND_ACTION);
+                Bundle msgBundle = new Bundle();
+                msgBundle
+                        .putString("message", messageEditText.getText().toString());
+                //msgBundle.putBoolean("isEmail", messageCheckBox.isChecked());
+                msgBundle.putLong("finishTime", finishTime);
+                msgBundle.putInt("responseInterval", responseIntervalMIN);
+                msgBundle.putBoolean("gpsLocation", addLicationCheckBox.isChecked());
+                msg.setData(msgBundle);
+                msg.replyTo = messageService;
+                try {
+                    messageService.send(msg);
+                } catch (RemoteException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            Log.w(TAG,
+                    "sendNewRespondAction(): Activity is not bound with service. CAN'T SEND MSG");
+        }
+    }
+
+    private void sendRespondActionCancelation() {
+        Log.i(TAG, "sendRespondActionCancelation()");
+
+        if (isBound) {
+            Log.i(TAG, "sendRespondActionCancelation() isBound");
+
+            if (messageService != null) {
+
+                Log.i(TAG,
+                        "sendRespondActionCancelation() messageService != null");
+                Message msg = Message.obtain(null,
+                        AutoTextRespondService.CANCEL_RESPOND_ACTION);
+                msg.replyTo = messageService;
+                try {
+                    messageService.send(msg);
+                } catch (RemoteException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            Log.w(TAG,
+                    "sendNewRespondAction(): Activity is not bound with service. CAN'T SEND MSG");
+        }
+    }
+
 
 }
