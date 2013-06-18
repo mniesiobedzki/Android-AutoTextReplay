@@ -1,16 +1,23 @@
 package pl.niesiobedzki.marek.autotextreplay;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.location.LocationManager;
 import android.os.Bundle;
-import android.app.Activity;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.Settings;
+import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
@@ -29,7 +36,7 @@ import pl.niesiobedzki.marek.autotextreplay.service.AutoTextRespondService;
  *
  * @author Marek Adam Niesiobędzki
  */
-public class AutoTextReplayMainActivity extends Activity {
+public class AutoTextReplayMainActivity extends FragmentActivity {
 
     /* log's tag */
     private static final String TAG = "AutoTextReplayMainActivity";
@@ -51,7 +58,7 @@ public class AutoTextReplayMainActivity extends Activity {
 
     /* Message provided by user, which will replay for incoming connections and text */
     private EditText messageEditText;
-   private CheckBox addLicationCheckBox;
+    private CheckBox addLicationCheckBox;
     private boolean addLocation = false;
 
     //private LocationManager locationManager;
@@ -132,30 +139,30 @@ public class AutoTextReplayMainActivity extends Activity {
      */
     private CompoundButton.OnCheckedChangeListener mOnCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+        public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             Log.d(TAG, "CheckBox Listener");
 
-            if(compoundButton.getId() == addLicationCheckBox.getId()){
+            if (compoundButton.getId() == addLicationCheckBox.getId()) {
                 /* add location checkbox */
-                Log.d(TAG, "Checkbox Add location " + b);
-                if(b){
+                Log.d(TAG, "Checkbox Add location " + isChecked);
+                if (isChecked) {
 
-                    //TODO: check if GPS is On and display msg to the user http://www.vogella.com/articles/AndroidLocationAPI/article.html 2.8
-
+                    /** Check if enabled and if not display a dialog and suggesting togo to the settings */
+                    LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+                    boolean enabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                    if (!enabled) {
+                        FireMissilesDialogFragment fireMissilesDialogFragment = new FireMissilesDialogFragment();
+                        fireMissilesDialogFragment.show(getSupportFragmentManager(), "Enable");
+                    }
                     addLocation = true;
-                   // myLocation.requestLocationUpdates();
-                    //locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,5000,10,locationListener);
                 } else {
                     addLocation = false;
-                    //locationManager.removeGpsStatusListener((GpsStatus.Listener) locationListener);
-                   // myLocation.removeGpsStatusListener();
                 }
             } else {
                 Log.w(TAG, "Unhandled OnCheckedChangeListener for compoundButton " + (compoundButton.getId()));
             }
         }
     };
-
 
 
     @Override
@@ -202,6 +209,7 @@ public class AutoTextReplayMainActivity extends Activity {
         restoreMe(savedInstanceState);
 
     }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -251,9 +259,9 @@ public class AutoTextReplayMainActivity extends Activity {
      * @return - minutes of response interval
      */
     private int seekBarToMinutes(int progress) {
-        Integer[] timeInMinutes = { 0, 5, 30, 60, 120, 240, 720, 1440, 2880, 10080,
-                20160, -1 };
-        int[] timesS = { 0, 5, 30, 1, 2, 4, 8, 1, 2, 7, 14, -1 };
+        Integer[] timeInMinutes = {0, 5, 30, 60, 120, 240, 720, 1440, 2880, 10080,
+                20160, -1};
+        int[] timesS = {0, 5, 30, 1, 2, 4, 8, 1, 2, 7, 14, -1};
         int group = (int) (progress / 8.4);
         Log.d(TAG, "seekBarToMinutes(" + progress + ") " + progress + "/12="
                 + group + " timeInMinutes[" + group + "]=" + timeInMinutes[group]);
@@ -287,7 +295,6 @@ public class AutoTextReplayMainActivity extends Activity {
      * Recieved message from service
      *
      * @author marek niesiobędzki
-     *
      */
     class IncomingHandler extends Handler {
         @Override
@@ -333,6 +340,7 @@ public class AutoTextReplayMainActivity extends Activity {
     };
 
     private boolean isBound = false;
+
     private void CheckIfServiceIsRunning() {
         // If the service is running when the activity starts, we want to
         // automatically bind to it.
@@ -346,12 +354,13 @@ public class AutoTextReplayMainActivity extends Activity {
         }
 
     }
+
     /**
      * Łączy activity z servisem
      */
     private void doBindService() {
         Intent bindIndent = new Intent(this, AutoTextRespondService.class);
-               bindService(bindIndent,
+        bindService(bindIndent,
                 serviceConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
         Log.i(TAG, "Activity Bound to Service");
@@ -428,6 +437,29 @@ public class AutoTextReplayMainActivity extends Activity {
         } else {
             Log.w(TAG,
                     "sendNewRespondAction(): Activity is not bound with service. CAN'T SEND MSG");
+        }
+    }
+
+
+    public class FireMissilesDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            // Use the Builder class for convenient dialog construction
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(R.string.enableGpsQM)
+                    .setPositiveButton(R.string.enable, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                            startActivity(intent);
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            addLicationCheckBox.setChecked(false);
+                        }
+                    });
+            // Create the AlertDialog object and return it
+            return builder.create();
         }
     }
 

@@ -29,4 +29,8 @@
     <string name="forTimeIconDesc">forTimeIcon</string>
     <string name="action_settings">Action Settings todo</string>
 
+    <string name="enableGpsQM">Enable GPS?</string>
+    <string name="enable">Enable</string>
+    <string name="cancel">Cancel</string>
+
 </resources>
