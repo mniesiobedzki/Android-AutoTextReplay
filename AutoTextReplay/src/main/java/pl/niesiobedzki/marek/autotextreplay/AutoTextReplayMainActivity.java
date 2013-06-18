@@ -48,69 +48,12 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /* Time For/upTo/selected Layouts */
     private RelativeLayout timeForRelativeLayout;
     private RelativeLayout timeUpToRelativeLayout;
-    private RelativeLayout timeSelectedRelativeLayout;
 
     private long finishTime;
 
-    /**
-     * MESSAGE section
-     */
+    private boolean timeForMode;
+    private boolean timeUpToMode;
 
-    /* Message provided by user, which will replay for incoming connections and text */
-    private EditText messageEditText;
-    private CheckBox addLicationCheckBox;
-    private boolean addLocation = false;
-
-    //private LocationManager locationManager;
-
-    //TODO: e-mail sender to send e-mials and text both together
-
-    /**
-     * ANSWER INTERVAL section
-     */
-
-    /* For activating and deactivating service */
-    private ToggleButton activationToggleButton;
-
-    /* Listener for activatingToggleButton */
-    private CompoundButton.OnCheckedChangeListener activatorToggleButtonListener = new CompoundButton.OnCheckedChangeListener() {
-        @Override
-        public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
-            if (isChecked) {
-                Log.d(TAG, "ToggleButton Activated");
-                sendNewRespondAction();
-            } else {
-                Log.d(TAG, "ToggleButton Deactivated");
-                sendRespondActionCancelation();
-            }
-        }
-    };
-
-    private TextView interval_freq_desc_textView;
-    private TextView interval_freq_number_textView;
-    private int responseIntervalMIN = 0;
-
-    /* interval duration seek bar */
-    private SeekBar intervalSeekBar;
-    int answerIntervalTime;
-    private SeekBar.OnSeekBarChangeListener intervalSeekBarListener = new SeekBar.OnSeekBarChangeListener() {
-
-        @Override
-        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
-            Log.d(TAG, "onProgressChanged: " + seekBar.getProgress());
-            answerIntervalTime = seekBarToMinutes(seekBar.getProgress());
-        }
-
-        @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-            Log.d(TAG, "onStartTrackingTouch: " + seekBar.getProgress());
-        }
-
-        @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-            Log.d(TAG, "onStopTrackingTouch: " + seekBar.getProgress());
-        }
-    };
 
     /**
      * Listener for clicks
@@ -135,14 +78,24 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     };
 
     /**
-     * Listener for Checkboxes
+     * MESSAGE section
+     */
+
+    /* Message provided by user, which will replay for incoming connections and text */
+    private EditText messageEditText;
+    private CheckBox addLocationCheckBox;
+    private CheckBox sendEmailCheckBox;
+
+    /**
+     * Listener for Checkboxes in Message Section
      */
     private CompoundButton.OnCheckedChangeListener mOnCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             Log.d(TAG, "CheckBox Listener");
 
-            if (compoundButton.getId() == addLicationCheckBox.getId()) {
+            /* ADD LOCATION CheckBOx */
+            if (compoundButton.getId() == addLocationCheckBox.getId()) {
                 /* add location checkbox */
                 Log.d(TAG, "Checkbox Add location " + isChecked);
                 if (isChecked) {
@@ -151,18 +104,64 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                     LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
                     boolean enabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER);
                     if (!enabled) {
-                        FireMissilesDialogFragment fireMissilesDialogFragment = new FireMissilesDialogFragment();
-                        fireMissilesDialogFragment.show(getSupportFragmentManager(), "Enable");
+                        EnableGpsDialogFragment enableGpsDialogFragment = new EnableGpsDialogFragment();
+                        enableGpsDialogFragment.show(getSupportFragmentManager(), "Enable");
                     }
-                    addLocation = true;
-                } else {
-                    addLocation = false;
                 }
+            } else if (compoundButton.getId() == sendEmailCheckBox.getId()){
+                //TODO: impelement
             } else {
                 Log.w(TAG, "Unhandled OnCheckedChangeListener for compoundButton " + (compoundButton.getId()));
             }
         }
     };
+
+    /**
+     * ANSWER INTERVAL section
+     */
+
+    private TextView interval_freq_desc_textView;
+    private TextView interval_freq_number_textView;
+
+    /* interval duration seek bar */
+    private SeekBar intervalSeekBar;
+    int answerIntervalTime;
+
+    /* SeekBar Listener */
+    private SeekBar.OnSeekBarChangeListener intervalSeekBarListener = new SeekBar.OnSeekBarChangeListener() {
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+            Log.d(TAG, "onProgressChanged: " + seekBar.getProgress());
+            answerIntervalTime = seekBarToMinutes(seekBar.getProgress());
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            Log.d(TAG, "onStartTrackingTouch: " + seekBar.getProgress());
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            Log.d(TAG, "onStopTrackingTouch: " + seekBar.getProgress());
+        }
+    };
+
+
+    /* Listener for activatingToggleButton */
+    private CompoundButton.OnCheckedChangeListener activatorToggleButtonListener = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+            if (isChecked) {
+                Log.d(TAG, "ToggleButton Activated");
+                activateReplay();
+            } else {
+                Log.d(TAG, "ToggleButton Deactivated");
+                deactivateReplay();
+            }
+        }
+    };
+
 
 
     @Override
@@ -183,7 +182,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         timeUpToRelativeLayout.setOnClickListener(mClickListener);
 
         /* Time Selected Layout - when user activate service for specific time */
-        timeSelectedRelativeLayout = (RelativeLayout) findViewById(R.id.Main_Time_Selected);
+        RelativeLayout timeSelectedRelativeLayout = (RelativeLayout) findViewById(R.id.Main_Time_Selected);
         timeSelectedRelativeLayout.setOnClickListener(mClickListener);
 
         /* massage from user to replay */
@@ -192,8 +191,12 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         messageEditText.setFocusable(false);
         messageEditText.setFocusableInTouchMode(true);
 
-        addLicationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
-        addLicationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
+        sendEmailCheckBox = (CheckBox) findViewById(R.id.Main_Message_EMAIL_checkBox);
+        sendEmailCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
+        sendEmailCheckBox.setVisibility(View.GONE); // TODO: implement E-mail notyfication
+
+        addLocationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
+        addLocationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
 
         interval_freq_desc_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_DESC_textView);
         interval_freq_number_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_NUMBER_textView);
@@ -203,7 +206,10 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         intervalSeekBar.setProgress(25);
 
 
-        activationToggleButton = (ToggleButton) findViewById(R.id.Main_ACTIVATE_ToggleButton);
+        /*
+      ACTIVATION BUTTON
+     */
+        ToggleButton activationToggleButton = (ToggleButton) findViewById(R.id.Main_ACTIVATE_ToggleButton);
         activationToggleButton.setOnCheckedChangeListener(activatorToggleButtonListener);
 
         restoreMe(savedInstanceState);
@@ -213,42 +219,55 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     @Override
     public void onResume() {
         super.onResume();
-        Log.i(TAG, "onResume()");
-        CheckIfServiceIsRunning();
+        Log.d(TAG, "onResume()");
+        checkIfServiceIsRunning();
     }
 
-
+    /**
+     * Inflate the menu. Adds items to the action bar if it is present.
+     * */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.respond, menu);
         return true;
     }
 
     /**
-     * Stores variables state
+     * Stores application's variables state
      *
-     * @param outState
+     * @param outState - state of the Activity
      * @see Activity
      */
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("msg", messageEditText.getText().toString());
-        //outState.putBoolean("isEmail", messageEmail.isChecked());
-        outState.putInt("duration", intervalSeekBar.getProgress());
+        outState.putBoolean("timeFor", timeForMode);
+        outState.putBoolean("timeUpTo", timeUpToMode);
+        outState.putLong("finishTime", finishTime);
+        outState.putString("message", messageEditText.getText().toString());
+        outState.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
+        outState.putBoolean("isEmail", sendEmailCheckBox.isChecked());
+        outState.putInt("responseInterval", intervalSeekBar.getProgress());
     }
 
     /**
      * Restores variables from saved state
      *
-     * @param state - Bundle
+     * @param state - state of the Activity
+     * @see Activity
      */
     private void restoreMe(Bundle state) {
         if (state != null) {
-            messageEditText.setText(state.getString("msg"));
-            //messageEmail.setChecked(state.getBoolean("isEmail"));
-            intervalSeekBar.setProgress(state.getInt("duration"));
+            timeForMode = state.getBoolean("timeFor", false);
+            timeUpToMode = state.getBoolean("timeUpTo", false);
+            finishTime = state.getLong("finishTime", 0);
+            messageEditText.setText(state.getString("message"));
+            addLocationCheckBox.setChecked(state.getBoolean("gpsLocation"));
+            sendEmailCheckBox.setChecked(state.getBoolean("isEmail"));
+            intervalSeekBar.setProgress(state.getInt("responseInterval"));
+        } else {
+            timeForMode = false;
+            timeUpToMode = false;
         }
     }
 
@@ -314,9 +333,10 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     Messenger messageService = null;
     /**
-     * Podpięcie Activity do Servisu
+     * Interface for monitoring state of connection between the Activity and the Service
      */
     private ServiceConnection serviceConnection = new ServiceConnection() {
+
         public void onServiceConnected(ComponentName className, IBinder service) {
             messageService = new Messenger(service);
             Log.i(TAG, "Service Attached.");
@@ -326,25 +346,24 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 msg.replyTo = messageService;
                 messageService.send(msg);
             } catch (RemoteException e) {
-                // In this case the service has crashed before we could even do
-                // anything with it
+                Log.e(TAG, "The service has crashed before we could even do anything with it");
+                Log.e(TAG, e.getLocalizedMessage());
             }
         }
 
+        /** is called when the connection with the service has been
+         *  unexpectedly disconnected - process crashed */
         public void onServiceDisconnected(ComponentName className) {
-            // This is called when the connection with the service has been
-            // unexpectedly disconnected - process crashed.
             messageService = null;
             Log.i(TAG, "Service Disconnected!");
         }
     };
 
-    private boolean isBound = false;
 
-    private void CheckIfServiceIsRunning() {
-        // If the service is running when the activity starts, we want to
-        // automatically bind to it.
-        Log.i(TAG, "CheckIfServiceIsRunning()");
+    /**
+     * If the service is running when the activity starts, binds to it automatically.
+     */
+    private void checkIfServiceIsRunning() {
         if (AutoTextRespondService.isRunning()) {
             doBindService();
         } else {
@@ -352,11 +371,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             startService(serviceIntent);
             doBindService();
         }
-
     }
 
+    private boolean isBound = false;
     /**
-     * Łączy activity z servisem
+     * Binds the Activity to the Service
      */
     private void doBindService() {
         Intent bindIndent = new Intent(this, AutoTextRespondService.class);
@@ -366,10 +385,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         Log.i(TAG, "Activity Bound to Service");
     }
 
+    /**
+     * Unbinds the Activity from the Service
+     */
     private void doUnBindService() {
         if (isBound) {
-            // If we have received the service, and hence registered with it,
-            // then now is the time to unregister.
             if (messageService != null) {
                 Message msg = Message.obtain(null,
                         AutoTextRespondService.SERVICE_UNREGISTER_CLIENT);
@@ -377,74 +397,81 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 try {
                     messageService.send(msg);
                 } catch (RemoteException e) {
-                    // TODO Auto-generated catch block
+                    Log.e(TAG, "Error while sending activation replay message from activity to the service");
                     e.printStackTrace();
                 }
             }
             unbindService(serviceConnection);
             isBound = false;
-            Log.i(TAG, "Activity unBound to Service");
+            Log.d(TAG, "Activity unBound to Service");
         }
     }
 
-    private void sendNewRespondAction() {
+    /**
+     * Activates replay message in the service
+     */
+    private void activateReplay() {
         if (isBound) {
             if (messageService != null) {
-                Message msg = Message.obtain(null,
-                        AutoTextRespondService.MSG_SET_RESPOND_ACTION);
+                Message msg = Message.obtain(null, AutoTextRespondService.MSG_SET_RESPOND_ACTION);
                 Bundle msgBundle = new Bundle();
-                msgBundle
-                        .putString("message", messageEditText.getText().toString());
-                //msgBundle.putBoolean("isEmail", messageCheckBox.isChecked());
+                msgBundle.putString("message", messageEditText.getText().toString());
                 msgBundle.putLong("finishTime", finishTime);
-                msgBundle.putInt("responseInterval", responseIntervalMIN);
-                msgBundle.putBoolean("gpsLocation", addLicationCheckBox.isChecked());
+                msgBundle.putInt("responseInterval", answerIntervalTime);
+                msgBundle.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
                 msg.setData(msgBundle);
                 msg.replyTo = messageService;
                 try {
                     messageService.send(msg);
                 } catch (RemoteException e) {
-                    // TODO Auto-generated catch block
+                    Log.e(TAG, "Error while sending activation replay message from activity to the service");
                     e.printStackTrace();
+
                 }
             }
         } else {
             Log.w(TAG,
-                    "sendNewRespondAction(): Activity is not bound with service. CAN'T SEND MSG");
+                    "activateReplay(): Activity is not bound with service. CAN'T SEND MSG");
         }
     }
 
-    private void sendRespondActionCancelation() {
-        Log.i(TAG, "sendRespondActionCancelation()");
+    /**
+     * Deactivates replay message in the service
+     */
+    private void deactivateReplay() {
+        Log.d(TAG, "deactivateReplay()");
 
         if (isBound) {
-            Log.i(TAG, "sendRespondActionCancelation() isBound");
+            Log.d(TAG, "deactivateReplay() isBound");
 
             if (messageService != null) {
 
                 Log.i(TAG,
-                        "sendRespondActionCancelation() messageService != null");
+                        "deactivateReplay() messageService != null");
                 Message msg = Message.obtain(null,
                         AutoTextRespondService.CANCEL_RESPOND_ACTION);
                 msg.replyTo = messageService;
                 try {
                     messageService.send(msg);
                 } catch (RemoteException e) {
-                    // TODO Auto-generated catch block
+                    Log.e(TAG, "Error while deactivating bind between the activity and the service");
+                    Log.e(TAG, e.getLocalizedMessage());
                     e.printStackTrace();
                 }
             }
         } else {
             Log.w(TAG,
-                    "sendNewRespondAction(): Activity is not bound with service. CAN'T SEND MSG");
+                    "activateReplay(): Activity is not bound with service. CAN'T SEND MSG");
         }
     }
 
-
-    public class FireMissilesDialogFragment extends DialogFragment {
+    /**
+     * Dialog with question to enable GPS module if it not enabled.
+     * @see DialogFragment
+     */
+    public class EnableGpsDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            // Use the Builder class for convenient dialog construction
             AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
             builder.setMessage(R.string.enableGpsQM)
                     .setPositiveButton(R.string.enable, new DialogInterface.OnClickListener() {
@@ -455,10 +482,9 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                     })
                     .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                            addLicationCheckBox.setChecked(false);
+                            addLocationCheckBox.setChecked(false);
                         }
                     });
-            // Create the AlertDialog object and return it
             return builder.create();
         }
     }
