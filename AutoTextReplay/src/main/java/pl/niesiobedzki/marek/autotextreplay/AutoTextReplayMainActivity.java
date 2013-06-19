@@ -223,6 +223,12 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         checkIfServiceIsRunning();
     }
 
+    @Override
+    public void onPause(){
+        Log.d(TAG, "onPause()");
+        doUnBindService();
+    }
+
     /**
      * Inflate the menu. Adds items to the action bar if it is present.
      * */
@@ -310,6 +316,8 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         return timeInMinutes[group];
     }
 
+    /** for comunication service -> acrivity */
+    final Messenger mMessenger = new Messenger(new IncomingHandler());
     /**
      * Recieved message from service
      *
