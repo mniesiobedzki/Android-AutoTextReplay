@@ -12,6 +12,8 @@ import android.util.Log;
 
 import java.io.Serializable;
 
+import pl.niesiobedzki.marek.autotextreplay.service.AutoTextReplayService;
+
 /**
  * Created by marek on 16/6/13.
  */
@@ -23,14 +25,16 @@ public class MyLocation implements Serializable {
     private final MyLocationListener locationListener;
     private final Location location;
     private boolean active;
+    private AutoTextReplayService mAutoTextReplayService;
 
-    public MyLocation(Context applicationContext){
+    public MyLocation(Context applicationContext, AutoTextReplayService autoTextReplayService){
+        mAutoTextReplayService = autoTextReplayService;
         locationManager = (LocationManager) applicationContext.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
         String provider;
         provider = locationManager.getBestProvider(criteria, false);
         Log.i(TAG, "GPS Provider: " + provider);
-        locationListener = new MyLocationListener();
+        locationListener = new MyLocationListener(mAutoTextReplayService);
         location = locationManager.getLastKnownLocation(provider);
         this.active = false;
     }

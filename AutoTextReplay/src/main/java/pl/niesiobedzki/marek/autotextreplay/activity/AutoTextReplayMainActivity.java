@@ -1,4 +1,4 @@
-package pl.niesiobedzki.marek.autotextreplay;
+package pl.niesiobedzki.marek.autotextreplay.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -29,7 +29,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import pl.niesiobedzki.marek.autotextreplay.service.AutoTextRespondService;
+import pl.niesiobedzki.marek.autotextreplay.R;
+import pl.niesiobedzki.marek.autotextreplay.service.AutoTextReplayService;
 
 /**
  * Main activity class
@@ -40,6 +41,10 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     /* log's tag */
     private static final String TAG = "AutoTextReplayMainActivity";
+
+   final  Messenger messageActivtyService = new Messenger(new IncomingHandler());
+
+    public static final int ACTIVATED = 1;
 
     /**
      * TIME section
@@ -108,7 +113,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                         enableGpsDialogFragment.show(getSupportFragmentManager(), "Enable");
                     }
                 }
-            } else if (compoundButton.getId() == sendEmailCheckBox.getId()){
+            } else if (compoundButton.getId() == sendEmailCheckBox.getId()) {
                 //TODO: impelement
             } else {
                 Log.w(TAG, "Unhandled OnCheckedChangeListener for compoundButton " + (compoundButton.getId()));
@@ -147,7 +152,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         }
     };
 
-
     /* Listener for activatingToggleButton */
     private CompoundButton.OnCheckedChangeListener activatorToggleButtonListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
@@ -161,7 +165,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             }
         }
     };
-
+    private Messenger mService = null;
 
 
     @Override
@@ -193,7 +197,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
         sendEmailCheckBox = (CheckBox) findViewById(R.id.Main_Message_EMAIL_checkBox);
         sendEmailCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
-        sendEmailCheckBox.setVisibility(View.GONE); // TODO: implement E-mail notyfication
+        sendEmailCheckBox.setVisibility(View.GONE);
 
         addLocationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
         addLocationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
@@ -224,14 +228,15 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     }
 
     @Override
-    public void onPause(){
+    public void onPause() {
+        super.onPause();
         Log.d(TAG, "onPause()");
         doUnBindService();
     }
 
     /**
      * Inflate the menu. Adds items to the action bar if it is present.
-     * */
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.respond, menu);
@@ -316,8 +321,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         return timeInMinutes[group];
     }
 
-    /** for comunication service -> acrivity */
+    /**
+     * for comunication service -> acrivity
+     */
     final Messenger mMessenger = new Messenger(new IncomingHandler());
+
     /**
      * Recieved message from service
      *
@@ -326,12 +334,22 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     class IncomingHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
+            Bundle msgBundle = msg.getData();
+            Log.i(TAG, "NEW MESSAGE with ID="+msg.what);
             switch (msg.what) {
-                case AutoTextRespondService.SERVICE_ACTIVATED:
+                case AutoTextReplayService.SERVICE_ACTIVATED:
                     Log.d(TAG, "Service is activated");
                     break;
-                case AutoTextRespondService.SERVICE_DEACTIVATED:
+                case AutoTextReplayService.SERVICE_DEACTIVATED:
                     Log.d(TAG, "Service is deactivated");
+                    break;
+                case AutoTextReplayService.NEW_GPS_COORDINATES:
+                    //TODO: test
+                    double gpsLatitude = msgBundle.getDouble(AutoTextReplayService.GPS_LATITUDE, 0.0);
+                    double gpsLogitude = msgBundle.getDouble(AutoTextReplayService.GPS_LONGITUDE, 0.0);
+                    double gpsAtitude = msgBundle.getDouble(AutoTextReplayService.GPS_ALTITUDE, 0.0);
+                    float gpsAccuracy = msgBundle.getFloat(AutoTextReplayService.GPS_ACCURACY, 0);
+                    Log.i(TAG, "NEW LOCATION: "+ gpsLatitude +", "+gpsLogitude+", "+gpsAtitude + ", "+ gpsAccuracy);
                     break;
                 default:
                     super.handleMessage(msg);
@@ -339,20 +357,20 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         }
     }
 
-    Messenger messageService = null;
+
     /**
      * Interface for monitoring state of connection between the Activity and the Service
      */
     private ServiceConnection serviceConnection = new ServiceConnection() {
 
         public void onServiceConnected(ComponentName className, IBinder service) {
-            messageService = new Messenger(service);
+            mService = new Messenger(service);
             Log.i(TAG, "Service Attached.");
             try {
                 Message msg = Message.obtain(null,
-                        AutoTextRespondService.SERVICE_REGISTER_NEW_CLIENT);
-                msg.replyTo = messageService;
-                messageService.send(msg);
+                        AutoTextReplayService.SERVICE_REGISTER_NEW_CLIENT);
+                msg.replyTo = messageActivtyService;
+                mService.send(msg);
             } catch (RemoteException e) {
                 Log.e(TAG, "The service has crashed before we could even do anything with it");
                 Log.e(TAG, e.getLocalizedMessage());
@@ -362,7 +380,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         /** is called when the connection with the service has been
          *  unexpectedly disconnected - process crashed */
         public void onServiceDisconnected(ComponentName className) {
-            messageService = null;
+            mService = null;
             Log.i(TAG, "Service Disconnected!");
         }
     };
@@ -372,25 +390,26 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
      * If the service is running when the activity starts, binds to it automatically.
      */
     private void checkIfServiceIsRunning() {
-        if (AutoTextRespondService.isRunning()) {
+        if (AutoTextReplayService.isRunning()) {
             doBindService();
         } else {
-            Intent serviceIntent = new Intent(this, AutoTextRespondService.class);
+            Intent serviceIntent = new Intent(this, AutoTextReplayService.class);
             startService(serviceIntent);
             doBindService();
         }
     }
 
     private boolean isBound = false;
+
     /**
      * Binds the Activity to the Service
      */
     private void doBindService() {
-        Intent bindIndent = new Intent(this, AutoTextRespondService.class);
-        bindService(bindIndent,
-                serviceConnection, Context.BIND_AUTO_CREATE);
+        Intent bindIndent = new Intent(this, AutoTextReplayService.class);
+        bindService(bindIndent,serviceConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
         Log.i(TAG, "Activity Bound to Service");
+
     }
 
     /**
@@ -398,12 +417,12 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
      */
     private void doUnBindService() {
         if (isBound) {
-            if (messageService != null) {
+            if (messageActivtyService != null) {
                 Message msg = Message.obtain(null,
-                        AutoTextRespondService.SERVICE_UNREGISTER_CLIENT);
-                msg.replyTo = messageService;
+                        AutoTextReplayService.SERVICE_UNREGISTER_CLIENT);
+                msg.replyTo = messageActivtyService;
                 try {
-                    messageService.send(msg);
+                    messageActivtyService.send(msg);
                 } catch (RemoteException e) {
                     Log.e(TAG, "Error while sending activation replay message from activity to the service");
                     e.printStackTrace();
@@ -420,17 +439,17 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
      */
     private void activateReplay() {
         if (isBound) {
-            if (messageService != null) {
-                Message msg = Message.obtain(null, AutoTextRespondService.MSG_SET_RESPOND_ACTION);
+            if (mService != null) {
+                Message msg = Message.obtain(null, AutoTextReplayService.MSG_SET_RESPOND_ACTION);
                 Bundle msgBundle = new Bundle();
                 msgBundle.putString("message", messageEditText.getText().toString());
                 msgBundle.putLong("finishTime", finishTime);
                 msgBundle.putInt("responseInterval", answerIntervalTime);
                 msgBundle.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
                 msg.setData(msgBundle);
-                msg.replyTo = messageService;
+                msg.replyTo = messageActivtyService;
                 try {
-                    messageService.send(msg);
+                    mService.send(msg);
                 } catch (RemoteException e) {
                     Log.e(TAG, "Error while sending activation replay message from activity to the service");
                     e.printStackTrace();
@@ -452,15 +471,15 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         if (isBound) {
             Log.d(TAG, "deactivateReplay() isBound");
 
-            if (messageService != null) {
+            if (mService != null) {
 
                 Log.i(TAG,
-                        "deactivateReplay() messageService != null");
+                        "deactivateReplay() messageActivtyService != null");
                 Message msg = Message.obtain(null,
-                        AutoTextRespondService.CANCEL_RESPOND_ACTION);
-                msg.replyTo = messageService;
+                        AutoTextReplayService.CANCEL_RESPOND_ACTION);
+                msg.replyTo = messageActivtyService;
                 try {
-                    messageService.send(msg);
+                    mService.send(msg);
                 } catch (RemoteException e) {
                     Log.e(TAG, "Error while deactivating bind between the activity and the service");
                     Log.e(TAG, e.getLocalizedMessage());
@@ -475,6 +494,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     /**
      * Dialog with question to enable GPS module if it not enabled.
+     *
      * @see DialogFragment
      */
     public class EnableGpsDialogFragment extends DialogFragment {
@@ -496,6 +516,4 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             return builder.create();
         }
     }
-
-
 }

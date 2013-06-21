@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".AutoTextReplayMainActivity"
+            android:name=".activity.AutoTextReplayMainActivity"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -22,7 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name="pl.niesiobedzki.marek.autotextreplay.service.AutoTextRespondService"></service>
+        <service android:name=".service.AutoTextReplayService"></service>
     </application>
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

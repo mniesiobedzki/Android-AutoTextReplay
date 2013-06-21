@@ -5,6 +5,8 @@ import android.location.LocationListener;
 import android.os.Bundle;
 import android.util.Log;
 
+import pl.niesiobedzki.marek.autotextreplay.service.AutoTextReplayService;
+
 /**
  * Created by marek on 16/6/13.
  */
@@ -15,6 +17,12 @@ public class MyLocationListener implements LocationListener {
     private double latitude = 0;
     private double atitude = 0;
     private double lognitude = 0;
+    private AutoTextReplayService mAutoTextReplayService;
+
+    public MyLocationListener(AutoTextReplayService autoTextReplayService) {
+
+        mAutoTextReplayService = autoTextReplayService;
+    }
 
     @Override
     public void onLocationChanged(Location location) {
@@ -23,6 +31,8 @@ public class MyLocationListener implements LocationListener {
         lognitude = location.getLongitude();
 
         Log.i("GPS", "LATITUDE: " + latitude + ", LONGITUDE: " + lognitude + ", ATITUDE: " + atitude + ", PROVIDER: " + location.getProvider());
+
+        mAutoTextReplayService.sendToActivityNewGpsCordinates(location);
     }
 
     @Override
