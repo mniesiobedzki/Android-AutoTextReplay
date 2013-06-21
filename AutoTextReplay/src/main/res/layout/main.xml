@@ -223,7 +223,7 @@
             <EditText
                     android:id="@+id/Main_Message_EditText"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="120dp"
                     android:layout_alignParentLeft="true"
 
                     android:layout_below="@+id/Main_Message_TextView"
@@ -231,26 +231,18 @@
                     android:gravity="top"
                     android:imeOptions="actionDone"
                     android:inputType="textImeMultiLine"
-                    android:lines="2"
-                    android:nextFocusDown="@+id/Main_Message_EMAIL_checkBox"/>
+                    android:lines="4"
+                    android:nextFocusDown="@+id/checkBox_add_location" />
 
-            <CheckBox
-                    android:id="@+id/Main_Message_EMAIL_checkBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentLeft="true"
-                    android:layout_below="@+id/Main_Message_EditText"
-                    android:layout_margin="7dp"
-                    android:text="@string/sendEmail"
-                    android:textColor="#000"/>
+
 
             <CheckBox
                     android:id="@+id/checkBox_add_location"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentBottom="true"
-                    android:layout_alignRight="@+id/Main_Message_EMAIL_checkBox"
-                    android:text="@string/location"/>
+                    android:text="@string/location"
+                    android:layout_below="@+id/Main_Message_EditText"
+                    android:checked="false"/>
 
         </RelativeLayout>
 

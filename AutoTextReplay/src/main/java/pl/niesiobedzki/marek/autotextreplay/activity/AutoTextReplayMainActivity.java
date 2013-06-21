@@ -3,10 +3,12 @@ package pl.niesiobedzki.marek.autotextreplay.activity;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -18,6 +20,7 @@ import android.os.RemoteException;
 import android.provider.Settings;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
@@ -42,7 +45,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /* log's tag */
     private static final String TAG = "AutoTextReplayMainActivity";
 
-   final  Messenger messageActivtyService = new Messenger(new IncomingHandler());
+    final Messenger messageActivtyService = new Messenger(new IncomingHandler());
 
     public static final int ACTIVATED = 1;
 
@@ -89,7 +92,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /* Message provided by user, which will replay for incoming connections and text */
     private EditText messageEditText;
     private CheckBox addLocationCheckBox;
-    private CheckBox sendEmailCheckBox;
 
     /**
      * Listener for Checkboxes in Message Section
@@ -113,8 +115,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                         enableGpsDialogFragment.show(getSupportFragmentManager(), "Enable");
                     }
                 }
-            } else if (compoundButton.getId() == sendEmailCheckBox.getId()) {
-                //TODO: impelement
             } else {
                 Log.w(TAG, "Unhandled OnCheckedChangeListener for compoundButton " + (compoundButton.getId()));
             }
@@ -195,10 +195,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         messageEditText.setFocusable(false);
         messageEditText.setFocusableInTouchMode(true);
 
-        sendEmailCheckBox = (CheckBox) findViewById(R.id.Main_Message_EMAIL_checkBox);
-        sendEmailCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
-        sendEmailCheckBox.setVisibility(View.GONE);
-
         addLocationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
         addLocationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
 
@@ -218,7 +214,25 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
         restoreMe(savedInstanceState);
 
+
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
+                new IntentFilter("custom-event-name"));
+
     }
+
+    // Our handler for received Intents. This will be called whenever an Intent
+    // with an action named "custom-event-name" is broadcasted.
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            String message = intent.getStringExtra("message");
+            Log.d("receiver", "Got message: " + message);
+        }
+    };
 
     @Override
     public void onResume() {
@@ -257,7 +271,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         outState.putLong("finishTime", finishTime);
         outState.putString("message", messageEditText.getText().toString());
         outState.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
-        outState.putBoolean("isEmail", sendEmailCheckBox.isChecked());
         outState.putInt("responseInterval", intervalSeekBar.getProgress());
     }
 
@@ -274,7 +287,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             finishTime = state.getLong("finishTime", 0);
             messageEditText.setText(state.getString("message"));
             addLocationCheckBox.setChecked(state.getBoolean("gpsLocation"));
-            sendEmailCheckBox.setChecked(state.getBoolean("isEmail"));
             intervalSeekBar.setProgress(state.getInt("responseInterval"));
         } else {
             timeForMode = false;
@@ -335,7 +347,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         @Override
         public void handleMessage(Message msg) {
             Bundle msgBundle = msg.getData();
-            Log.i(TAG, "NEW MESSAGE with ID="+msg.what);
+            Log.i(TAG, "NEW MESSAGE with ID=" + msg.what);
             switch (msg.what) {
                 case AutoTextReplayService.SERVICE_ACTIVATED:
                     Log.d(TAG, "Service is activated");
@@ -349,7 +361,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                     double gpsLogitude = msgBundle.getDouble(AutoTextReplayService.GPS_LONGITUDE, 0.0);
                     double gpsAtitude = msgBundle.getDouble(AutoTextReplayService.GPS_ALTITUDE, 0.0);
                     float gpsAccuracy = msgBundle.getFloat(AutoTextReplayService.GPS_ACCURACY, 0);
-                    Log.i(TAG, "NEW LOCATION: "+ gpsLatitude +", "+gpsLogitude+", "+gpsAtitude + ", "+ gpsAccuracy);
+                    Log.i(TAG, "NEW LOCATION: " + gpsLatitude + ", " + gpsLogitude + ", " + gpsAtitude + ", " + gpsAccuracy);
                     break;
                 default:
                     super.handleMessage(msg);
@@ -406,7 +418,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
      */
     private void doBindService() {
         Intent bindIndent = new Intent(this, AutoTextReplayService.class);
-        bindService(bindIndent,serviceConnection, Context.BIND_AUTO_CREATE);
+        bindService(bindIndent, serviceConnection, Context.BIND_AUTO_CREATE);
         isBound = true;
         Log.i(TAG, "Activity Bound to Service");
 

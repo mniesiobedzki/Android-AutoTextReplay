@@ -26,7 +26,7 @@ import pl.niesiobedzki.marek.autotextreplay.location.MyLocation;
 public class AutoTextReplayService extends Service {
 
     private static final String TAG = "ATRService";
-    public static final int NEW_GPS_COORDINATES = 6;
+
 
 
     private MyLocation myLocation;
@@ -42,6 +42,7 @@ public class AutoTextReplayService extends Service {
     public static final int SERVICE_UNREGISTER_CLIENT = 3;
     public static final int MSG_SET_RESPOND_ACTION = 4;
     public static final int CANCEL_RESPOND_ACTION = 5;
+    public static final int NEW_GPS_COORDINATES = 6;
 
     public static final String GPS_LATITUDE = "gpsLatitude";
     public static final String GPS_LONGITUDE = "gpsLongitude";
@@ -59,6 +60,7 @@ public class AutoTextReplayService extends Service {
 
     private ArrayList<Messenger> mClients;
 
+    private Messenger activity;
     /**
      * Handler for incomming msg from activity to service
      */
@@ -71,11 +73,13 @@ public class AutoTextReplayService extends Service {
                 case SERVICE_UNREGISTER_CLIENT:
                     mClients.remove(msg.replyTo);
                     Log.d(TAG, "IncomingHandler.handleMessage(SERVICE_DEACTIVATED)");
+                    activity = null;
                     break;
                 case SERVICE_REGISTER_NEW_CLIENT:
                     Log.d(TAG, "IncomingHandler.handleMessage(SERVICE_ACTIVATED)");
                     /* add client to list of activities conencted to the service */
                     mClients.add(msg.replyTo);
+                    activity = msg.replyTo;
                     Message msg_activated = Message.obtain(null, AutoTextReplayMainActivity.ACTIVATED);
                     try {
                         messageService.send(msg_activated);
@@ -205,6 +209,7 @@ public class AutoTextReplayService extends Service {
             msgBundle.putDouble(GPS_ALTITUDE, location.getAltitude());
             msgBundle.putFloat(GPS_ACCURACY, location.getAccuracy());
             msg.setData(msgBundle);
+
             sendMessageToActivty(msg);
         } else {
             Log.w(TAG, "No clients connected");
@@ -219,15 +224,16 @@ public class AutoTextReplayService extends Service {
      */
     private void sendMessageToActivty(Message msg) {
        // msg.replyTo = messageService;
-        for (Messenger messenger : mClients) {
-            try {
-                messenger.send(msg);
+        //for (Messenger messenger : mClients) {
+          try {
+               // mClients. .send(msg);
+                activity.send(msg);
                 Log.i(TAG, "Message from service to activity send");
             } catch (RemoteException e) {
                 /* if the client is dead I have to remove him from the list */
-                mClients.remove(messenger);
+               // mClients.remove(messenger);
             }
-        }
+       // }
     }
 
 }
