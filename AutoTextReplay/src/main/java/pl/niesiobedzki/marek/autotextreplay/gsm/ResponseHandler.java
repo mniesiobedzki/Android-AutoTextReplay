@@ -11,7 +11,7 @@ import pl.niesiobedzki.marek.autotextreplay.location.MyLocation;
 /**
  * @author Marek Adam Niesiobędzki
  */
-public class RespondHandler {
+public class ResponseHandler {
 
     private static final String TAG = "RespondLog";
 
@@ -30,23 +30,23 @@ public class RespondHandler {
     private int repsondInterval;
 
 
-//    public RespondHandler(String message, int repsondInterval) {
+//    public ResponseHandler(String message, int repsondInterval) {
 //        this.message = message;
 //        this.repsondInterval = (long) repsondInterval * MIN_IN_MILLIS;
-//        Log.v(TAG, "New RespondHandler: respondInterval: "
+//        Log.v(TAG, "New ResponseHandler: respondInterval: "
 //                + this.repsondInterval + " ");
 //    }
 
-    public RespondHandler(String message, long finishTime, int responseInterval) {
+    public ResponseHandler(String message, long finishTime, int responseInterval) {
         this.message = message;
         this.finishTime = finishTime;
         this.repsondInterval = responseInterval;
-        Log.v(TAG, "New RespondHandler: respondInterval: "
+        Log.v(TAG, "New ResponseHandler: respondInterval: "
                 + this.repsondInterval + " ");
 
     }
 
-    public RespondHandler() {
+    public ResponseHandler() {
         //TODO:
     }
 

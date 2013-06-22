@@ -14,7 +14,7 @@ public class GsmHandler {
     private final int mResponseInterval;
     private String message = "";
     private int phoneState = TelephonyManager.CALL_STATE_IDLE;
-    private RespondHandler respondHandler = null;
+    private ResponseHandler respondHandler = null;
 
     private boolean isActivated;
 

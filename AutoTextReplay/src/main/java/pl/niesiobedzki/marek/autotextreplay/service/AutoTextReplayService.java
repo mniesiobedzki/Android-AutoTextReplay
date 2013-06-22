@@ -1,7 +1,9 @@
 package pl.niesiobedzki.marek.autotextreplay.service;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,14 +12,13 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
-import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import java.util.ArrayList;
 
 import pl.niesiobedzki.marek.autotextreplay.activity.AutoTextReplayMainActivity;
-import pl.niesiobedzki.marek.autotextreplay.gsm.RespondHandler;
+import pl.niesiobedzki.marek.autotextreplay.gsm.ResponseHandler;
 import pl.niesiobedzki.marek.autotextreplay.location.MyLocation;
 
 /**
@@ -27,14 +28,16 @@ public class AutoTextReplayService extends Service {
 
     private static final String TAG = "ATRService";
 
+    public static final String PREFS_NAME = "ATRpref";
+
 
 
     private MyLocation myLocation;
-    private RespondHandler respondHandler;
+    private ResponseHandler respondHandler;
 
     private long finishTime;
     private String message;
-    private boolean gpsLocation;
+    private boolean gpsLocation = false;
 
     public static final int SERVICE_DEACTIVATED = 0;
     public static final int SERVICE_ACTIVATED = 1;
@@ -44,6 +47,7 @@ public class AutoTextReplayService extends Service {
     public static final int CANCEL_RESPOND_ACTION = 5;
     public static final int NEW_GPS_COORDINATES = 6;
 
+    public static final String GPS_LOCATION = "gpsLocation";
     public static final String GPS_LATITUDE = "gpsLatitude";
     public static final String GPS_LONGITUDE = "gpsLongitude";
     public static final String GPS_ALTITUDE = "gpsAltitude";
@@ -102,7 +106,7 @@ public class AutoTextReplayService extends Service {
                     responseInterval = msgBundle.getInt("responseInterval", 0);
                     gpsLocation = msgBundle.getBoolean("gpsLocation", false);
 
-                    respondHandler = new RespondHandler(message, finishTime, responseInterval);
+                    respondHandler = new ResponseHandler(message, finishTime, responseInterval);
                     if (gpsLocation) {
                         myLocation.requestLocationUpdates();
                         respondHandler.setMyLocation(myLocation);
@@ -176,7 +180,7 @@ public class AutoTextReplayService extends Service {
         Log.d(TAG, "AutoTextReplayService.onCreate");
         this.mClients = new ArrayList<Messenger>();
         this.myLocation = new MyLocation(getApplicationContext(), this);
-        this.respondHandler = new RespondHandler();
+        this.respondHandler = new ResponseHandler();
         // Intent i = new Intent(AutoTextReplayMainActivity.class)
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         //GsmHandler gsmHandler = new GsmHandler(tm, this.message, this.responseInterval);
@@ -185,11 +189,47 @@ public class AutoTextReplayService extends Service {
         isRunning = true;
     }
 
+
     @Override
     public void onDestroy() {
         super.onDestroy();
+        storeSharedPreferences();
+
+
         isRunning = false;
         Log.i(TAG, "Service stopped.");
+    }
+
+    private void storeSharedPreferences() {
+        // We need an Editor object to make preference changes.
+        // All objects are from android.context.Context
+
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean(GPS_LOCATION,gpsLocation);
+        if(gpsLocation){
+            editor.putFloat(GPS_LATITUDE, (float) myLocation.getLocation().getLatitude());
+            editor.putFloat(GPS_LONGITUDE, (float) myLocation.getLocation().getLongitude());
+            editor.putFloat(GPS_ALTITUDE, (float) myLocation.getLocation().getAltitude());
+            editor.putFloat(GPS_ACCURACY, myLocation.getLocation().getAccuracy());
+        }
+
+        /* Commit the edits */
+        editor.commit();
+    }
+
+    /**
+     * Restore preferences
+     */
+    private void loadSharedPreferences() {
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        gpsLocation = settings.getBoolean(GPS_LOCATION, false);
+        if(gpsLocation){
+           /* settings.getFloat(GPS_LATITUDE, (float) myLocation.getLocation().getLatitude());
+            settings.getFloat(GPS_LONGITUDE, (float) myLocation.getLocation().getLongitude());
+            settings.getFloat(GPS_ALTITUDE, (float) myLocation.getLocation().getAltitude());
+            settings.getFloat(GPS_ACCURACY, myLocation.getLocation().getAccuracy());*/
+        }
     }
 
     /**
@@ -226,8 +266,8 @@ public class AutoTextReplayService extends Service {
        // msg.replyTo = messageService;
         //for (Messenger messenger : mClients) {
           try {
-               // mClients. .send(msg);
-                activity.send(msg);
+            //   mClients.send(msg);
+              activity.send(msg);
                 Log.i(TAG, "Message from service to activity send");
             } catch (RemoteException e) {
                 /* if the client is dead I have to remove him from the list */

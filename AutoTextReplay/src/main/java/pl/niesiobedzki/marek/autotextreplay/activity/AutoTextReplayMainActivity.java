@@ -10,6 +10,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -44,6 +45,8 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     /* log's tag */
     private static final String TAG = "AutoTextReplayMainActivity";
+
+    public static final String PREFS_NAME = "ATRpref";
 
     final Messenger messageActivtyService = new Messenger(new IncomingHandler());
 
@@ -92,6 +95,8 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /* Message provided by user, which will replay for incoming connections and text */
     private EditText messageEditText;
     private CheckBox addLocationCheckBox;
+
+    private boolean gpsLocation;
 
     /**
      * Listener for Checkboxes in Message Section
@@ -174,6 +179,9 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         Log.i(TAG, "Main Activity onCreate()");
         setContentView(R.layout.main);
 
+        /* SharePreferences */
+        loadSharedPreferences();
+
         /* TIME */
         this.finishTime = 0;
 
@@ -197,6 +205,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
         addLocationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
         addLocationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
+        addLocationCheckBox.setChecked(gpsLocation);
 
         interval_freq_desc_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_DESC_textView);
         interval_freq_number_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_NUMBER_textView);
@@ -218,21 +227,26 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         // Register to receive messages.
         // We are registering an observer (mMessageReceiver) to receive Intents
         // with actions named "custom-event-name".
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter("custom-event-name"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(
+                mMessageReceiver, new IntentFilter("serviceToActivity"));
 
     }
 
-    // Our handler for received Intents. This will be called whenever an Intent
-    // with an action named "custom-event-name" is broadcasted.
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Get extra data included in the Intent
-            String message = intent.getStringExtra("message");
-            Log.d("receiver", "Got message: " + message);
-        }
-    };
+
+
+private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        Double currentSpeed = intent.getDoubleExtra("currentSpeed", 20);
+        Double currentLatitude = intent.getDoubleExtra("latitude", 0);
+        Double currentLongitude = intent.getDoubleExtra("longitude", 0);
+        //  ... react to local broadcast message
+        Log.d(TAG, "NOWE WSPÓŁRZEDNE "+currentLatitude+ " "+ currentLongitude);
+        Log.d(TAG, "NOWE WSPÓŁRZEDNE "+currentLatitude+ " "+ currentLongitude);
+        Log.d(TAG, "NOWE WSPÓŁRZEDNE "+currentLatitude+ " "+ currentLongitude);
+    }
+};
 
     @Override
     public void onResume() {
@@ -526,6 +540,20 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                         }
                     });
             return builder.create();
+        }
+    }
+
+    /**
+     * Restore preferences
+     */
+    private void loadSharedPreferences() {
+        SharedPreferences settings = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        gpsLocation = settings.getBoolean(AutoTextReplayService.GPS_LOCATION, false);
+        if(gpsLocation){
+           /* settings.getFloat(GPS_LATITUDE, (float) myLocation.getLocation().getLatitude());
+            settings.getFloat(GPS_LONGITUDE, (float) myLocation.getLocation().getLongitude());
+            settings.getFloat(GPS_ALTITUDE, (float) myLocation.getLocation().getAltitude());
+            settings.getFloat(GPS_ACCURACY, myLocation.getLocation().getAccuracy());*/
         }
     }
 }
