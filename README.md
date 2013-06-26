@@ -15,6 +15,6 @@ The AutoTextReplay is an Android application for replaying calls and texts by us
   - LocalBroadcastReciver
   - SharedPreferences
   - Tests - not yet implemented
-  - Otto event bus - not yet implemented
-  - ORM lite - not yet implemented
+  - [Otto event bus](http://square.github.io/otto/) - not yet implemented
+  - [ORM lite](http://ormlite.com) - not yet implemented
 
