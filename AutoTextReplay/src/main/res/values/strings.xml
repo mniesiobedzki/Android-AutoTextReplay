@@ -20,7 +20,7 @@
     <string name="intervalF1">Select how often respond to each caller.</string>
     <string name="oneAnswerPer">One answer per</string>
     <string name="location">Add location</string>
-    <string name="will_be_activate_for_to">Will be active for/to</string>
+    <string name="activated_till">Actived till</string>
     <string name="clockIcon">clockIcon</string>
     <string name="x_h_y_min">Xh Ymin</string>
     <string name="fifteen">15min</string>
@@ -32,5 +32,7 @@
     <string name="enableGpsQM">Enable GPS?</string>
     <string name="enable">Enable</string>
     <string name="cancel">Cancel</string>
+
+    <string name="x">X</string>
 
 </resources>

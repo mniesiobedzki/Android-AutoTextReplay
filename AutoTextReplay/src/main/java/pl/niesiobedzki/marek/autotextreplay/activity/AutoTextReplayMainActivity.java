@@ -2,7 +2,9 @@ package pl.niesiobedzki.marek.autotextreplay.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.Dialog;
+import android.app.TimePickerDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -22,16 +24,22 @@ import android.provider.Settings;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.ToggleButton;
+
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import pl.niesiobedzki.marek.autotextreplay.R;
 import pl.niesiobedzki.marek.autotextreplay.service.AutoTextReplayService;
@@ -59,11 +67,20 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /* Time For/upTo/selected Layouts */
     private RelativeLayout timeForRelativeLayout;
     private RelativeLayout timeUpToRelativeLayout;
+    private RelativeLayout timeSelectedRelativeLayout;
 
     private long finishTime;
+    private GregorianCalendar finishDate;
 
     private boolean timeForMode;
     private boolean timeUpToMode;
+
+    private int mYear;
+    private int mMonthOfYear;
+    private int mDayOfMonth;
+
+    private int mHour;
+    private int mMinute;
 
 
     /**
@@ -76,13 +93,31 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             if (view.getId() == timeForRelativeLayout.getId()) {
                 /* for time */
                 Log.d(TAG, "View.OnClickListener mClickListener.onClick( TIME_FOR_LAYOUT )");
-                //TODO: for time button implementation
+
+                DialogFragment newFragment = new TimeForTimePickerFragment();
+                newFragment.show(getSupportFragmentManager(), "Timeicker");
+
             } else if (view.getId() == timeUpToRelativeLayout.getId()) {
                 /* Up To time */
                 Log.d(TAG, "View.OnClickListener mClickListener.onClick( TIME_UP_TO_LAYOUT )");
-                //TODO: up to time button implementation
+
+                DialogFragment newFragment = new SelectDateFragment();
+                newFragment.show(getSupportFragmentManager(), "DatePicker");
+
+            } else if (view.getId() == activatedCloseXTextView.getId() || view.getId() == timeSelectedRelativeLayout.getId()) {
+                /* cancel activation finish time */
+                Log.d(TAG, "View.OnClickListener mClickListener.onClick( X )");
+
+
+                finishTime = 0;
+                timeForMode = false;
+                timeUpToMode = false;
+
+                AutoTextReplayMainActivity.this.timeSummaryGone();
+
+
             } else {
-                Log.w(TAG, "Unhandled OnClickListener for view " + (view.getId()));
+                Log.w(TAG, "Unhandled OnClickListener for view " + (view.getId()) + " Resource name: "+ getResources().getResourceEntryName(view.getId()));
             }
 
         }
@@ -171,6 +206,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         }
     };
     private Messenger mService = null;
+    private SharedPreferences prefs;
+    private SharedPreferences.OnSharedPreferenceChangeListener listener;
+    private TextView activatedTillTextView;
+    private TextView activatedTIMETextView;
+    private TextView activatedCloseXTextView;
 
 
     @Override
@@ -194,8 +234,16 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         timeUpToRelativeLayout.setOnClickListener(mClickListener);
 
         /* Time Selected Layout - when user activate service for specific time */
-        RelativeLayout timeSelectedRelativeLayout = (RelativeLayout) findViewById(R.id.Main_Time_Selected);
+        timeSelectedRelativeLayout = (RelativeLayout) findViewById(R.id.Main_Time_Selected);
         timeSelectedRelativeLayout.setOnClickListener(mClickListener);
+
+        activatedTillTextView = (TextView) findViewById(R.id.Main_Time_Selected_textView_Title);
+        activatedTIMETextView = (TextView) findViewById(R.id.Main_Time_Selected_textView_Time);
+
+
+        activatedCloseXTextView = (TextView) findViewById(R.id.Main_Time_Selected_textView_X);
+        activatedCloseXTextView.setClickable(true);
+        activatedCloseXTextView.setOnClickListener(mClickListener);
 
         /* massage from user to replay */
         messageEditText = (EditText) findViewById(R.id.Main_Message_EditText);
@@ -233,20 +281,20 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     }
 
 
+    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Double currentSpeed = intent.getDoubleExtra("currentSpeed", 20);
+            Double currentLatitude = intent.getDoubleExtra("latitude", 0);
+            Double currentLongitude = intent.getDoubleExtra("longitude", 0);
+            //  ... react to local broadcast message
+            Log.d(TAG, "NOWE WSPÓŁRZEDNE " + currentLatitude + " " + currentLongitude);
+            Log.d(TAG, "NOWE WSPÓŁRZEDNE " + currentLatitude + " " + currentLongitude);
+            Log.d(TAG, "NOWE WSPÓŁRZEDNE " + currentLatitude + " " + currentLongitude);
+        }
+    };
 
-private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-    @Override
-    public void onReceive(Context context, Intent intent) {
-        String action = intent.getAction();
-        Double currentSpeed = intent.getDoubleExtra("currentSpeed", 20);
-        Double currentLatitude = intent.getDoubleExtra("latitude", 0);
-        Double currentLongitude = intent.getDoubleExtra("longitude", 0);
-        //  ... react to local broadcast message
-        Log.d(TAG, "NOWE WSPÓŁRZEDNE "+currentLatitude+ " "+ currentLongitude);
-        Log.d(TAG, "NOWE WSPÓŁRZEDNE "+currentLatitude+ " "+ currentLongitude);
-        Log.d(TAG, "NOWE WSPÓŁRZEDNE "+currentLatitude+ " "+ currentLongitude);
-    }
-};
 
     @Override
     public void onResume() {
@@ -369,14 +417,6 @@ private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
                 case AutoTextReplayService.SERVICE_DEACTIVATED:
                     Log.d(TAG, "Service is deactivated");
                     break;
-                case AutoTextReplayService.NEW_GPS_COORDINATES:
-                    //TODO: test
-                    double gpsLatitude = msgBundle.getDouble(AutoTextReplayService.GPS_LATITUDE, 0.0);
-                    double gpsLogitude = msgBundle.getDouble(AutoTextReplayService.GPS_LONGITUDE, 0.0);
-                    double gpsAtitude = msgBundle.getDouble(AutoTextReplayService.GPS_ALTITUDE, 0.0);
-                    float gpsAccuracy = msgBundle.getFloat(AutoTextReplayService.GPS_ACCURACY, 0);
-                    Log.i(TAG, "NEW LOCATION: " + gpsLatitude + ", " + gpsLogitude + ", " + gpsAtitude + ", " + gpsAccuracy);
-                    break;
                 default:
                     super.handleMessage(msg);
             }
@@ -442,6 +482,7 @@ private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
      * Unbinds the Activity from the Service
      */
     private void doUnBindService() {
+        Log.d(TAG, "doUnBindService");
         if (isBound) {
             if (messageActivtyService != null) {
                 Message msg = Message.obtain(null,
@@ -549,11 +590,128 @@ private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
     private void loadSharedPreferences() {
         SharedPreferences settings = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         gpsLocation = settings.getBoolean(AutoTextReplayService.GPS_LOCATION, false);
-        if(gpsLocation){
-           /* settings.getFloat(GPS_LATITUDE, (float) myLocation.getLocation().getLatitude());
-            settings.getFloat(GPS_LONGITUDE, (float) myLocation.getLocation().getLongitude());
-            settings.getFloat(GPS_ALTITUDE, (float) myLocation.getLocation().getAltitude());
-            settings.getFloat(GPS_ACCURACY, myLocation.getLocation().getAccuracy());*/
+        if (gpsLocation) {
+            //TODO: laod position somewhere ;)
         }
+    }
+
+    /**
+     *
+     */
+    public class SelectDateFragment extends DialogFragment implements DatePickerDialog.OnDateSetListener {
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            final Calendar calendar = Calendar.getInstance();
+            int year = calendar.get(Calendar.YEAR);
+            int month = calendar.get(Calendar.MONTH);
+            int day = calendar.get(Calendar.DAY_OF_MONTH);
+            return new DatePickerDialog(getActivity(), this, year, month, day);
+        }
+
+        @Override
+        public void onDateSet(DatePicker datePicker, int year, int monthOfYear, int dayOfMonth) {
+            mYear = year;
+            mMonthOfYear = monthOfYear;
+            mDayOfMonth = dayOfMonth;
+
+            DialogFragment newFragment = new UptoTimePickerFragment();
+            newFragment.show(getSupportFragmentManager(), "TimePicker");
+        }
+    }
+
+    /**
+     *
+     */
+    public class UptoTimePickerFragment extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            // use the current time as the default values for the picker
+            final Calendar c = Calendar.getInstance();
+            int hour = c.get(Calendar.HOUR_OF_DAY);
+            int minute = c.get(Calendar.MINUTE);
+
+            // create a new instance of TimePickerDialog and return it
+            return new TimePickerDialog(getActivity(), this, hour, minute, DateFormat.is24HourFormat(getActivity()));
+        }
+
+        @Override
+        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+            mHour = hour;
+            mMinute = minute;
+            setFinishDateUpToTime();
+        }
+    }
+
+    public class TimeForTimePickerFragment extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            int hour = 0;
+            int minute = 0;
+
+            // create a new instance of TimePickerDialog and return it
+            return new TimePickerDialog(getActivity(), this, hour, minute, DateFormat.is24HourFormat(getActivity()));
+        }
+
+        @Override
+        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+            mHour = hour;
+            mMinute = minute;
+            setFinishDateForTime();
+        }
+    }
+
+    private void setFinishDateUpToTime() {
+        long newFinishTime = new GregorianCalendar(mYear, mMonthOfYear, mDayOfMonth, mHour, mMinute).getTimeInMillis();
+        this.setFinishTime(newFinishTime);
+    }
+
+    private void setFinishDateForTime() {
+        final Calendar calendar = Calendar.getInstance();
+        int year = calendar.get(Calendar.YEAR);
+        int month = calendar.get(Calendar.MONTH);
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        int hour = calendar.get(Calendar.HOUR_OF_DAY);
+        int minute = calendar.get(Calendar.MINUTE);
+        int sec = calendar.get(Calendar.SECOND);
+        int millisec = calendar.get(Calendar.MILLISECOND);
+
+        long now = new GregorianCalendar(year, month, day, hour, minute).getTimeInMillis();
+        now += millisec + (sec * 1000);
+        long newFinishTime = now + (mMinute * 60 * 1000) + (mHour * 60 * 60 * 1000);
+        Log.i(TAG, "NOW: " + now);
+        Log.i(TAG, "FIN: " + newFinishTime);
+
+        this.setFinishTime(newFinishTime);
+        this.timeSummaryVisible();
+    }
+
+    private void setFinishTime(long time) {
+        this.finishTime = time;
+       finishDate = new GregorianCalendar();
+        finishDate.setTimeInMillis(time);
+        Log.i(TAG, "New finish time: " + time + " " + finishDate.toString());
+    }
+
+    private void timeSummaryVisible() {
+        this.timeForRelativeLayout.setVisibility(View.GONE);
+        this.timeUpToRelativeLayout.setVisibility(View.GONE);
+        this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
+
+        finishDate = new GregorianCalendar();
+        finishDate.setTimeInMillis(finishTime);
+        this.activatedTIMETextView.setText("" + finishDate.get(GregorianCalendar.DAY_OF_MONTH) + "/"
+                + (finishDate.get(GregorianCalendar.MONTH) + 1) + "/" +
+                finishDate.get(GregorianCalendar.YEAR) + " " + finishDate.get(GregorianCalendar.HOUR_OF_DAY) + ":"
+                + finishDate.get(GregorianCalendar.MINUTE) + ":"
+                + finishDate.get(GregorianCalendar.SECOND));
+    }
+
+    private void timeSummaryGone() {
+        this.timeForRelativeLayout.setVisibility(View.VISIBLE);
+        this.timeUpToRelativeLayout.setVisibility(View.VISIBLE);
+        this.timeSelectedRelativeLayout.setVisibility(View.GONE);
     }
 }

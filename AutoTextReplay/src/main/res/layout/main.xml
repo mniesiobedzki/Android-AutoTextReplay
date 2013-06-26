@@ -56,7 +56,6 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="15dp"
                         android:layout_weight="1"
-                        android:onClick="selectedTimeFor"
                         android:visibility="visible"
                         android:paddingBottom="10dp">
 
@@ -162,12 +161,11 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentLeft="true"
-                            android:layout_alignParentRight="true"
                             android:layout_alignParentTop="true"
-                            android:text="@string/will_be_activate_for_to"
+                            android:text="@string/activated_till"
                             android:textColor="#ff0000"
                             android:layout_margin="5dp"
-                            android:textSize="12sp"/>
+                            android:textSize="25sp"/>
 
                     <TextView
                             android:id="@+id/Main_Time_Selected_textView_Time"
@@ -182,15 +180,14 @@
                             android:textSize="25sp"/>
 
                     <TextView
-                            android:id="@+id/textView3"
+                            android:id="@+id/Main_Time_Selected_textView_X"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_alignParentRight="true"
                             android:layout_centerVertical="true"
                             android:textSize="30sp"
                             android:textStyle="bold"
-                            android:text=""
-                            android:layout_marginLeft="5dp"
+                            android:text="@string/x"
                             android:layout_marginRight="5dp"/>
 
                 </RelativeLayout>
@@ -230,7 +227,7 @@
                     android:layout_margin="7dp"
                     android:gravity="top"
                     android:imeOptions="actionDone"
-                    android:inputType="textImeMultiLine"
+                    android:inputType="textMultiLine"
                     android:lines="4"
                     android:nextFocusDown="@+id/checkBox_add_location" />
 
