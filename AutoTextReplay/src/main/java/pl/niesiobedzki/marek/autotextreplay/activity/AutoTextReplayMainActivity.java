@@ -104,7 +104,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 DialogFragment newFragment = new SelectDateFragment();
                 newFragment.show(getSupportFragmentManager(), "DatePicker");
 
-            } else if (view.getId() == activatedCloseXTextView.getId() || view.getId() == timeSelectedRelativeLayout.getId()) {
+            } else if (view.getId() == activatedCloseXTextView.getId()) {
                 /* cancel activation finish time */
                 Log.d(TAG, "View.OnClickListener mClickListener.onClick( X )");
 
@@ -113,11 +113,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 timeForMode = false;
                 timeUpToMode = false;
 
-                AutoTextReplayMainActivity.this.timeSummaryGone();
+                AutoTextReplayMainActivity.this.changeToTimeModesMenu();
 
 
             } else {
-                Log.w(TAG, "Unhandled OnClickListener for view " + (view.getId()) + " Resource name: "+ getResources().getResourceEntryName(view.getId()));
+                Log.w(TAG, "Unhandled OnClickListener for view " + (view.getId()) + " Resource name: " + getResources().getResourceEntryName(view.getId()));
             }
 
         }
@@ -192,16 +192,30 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         }
     };
 
-    /* Listener for activatingToggleButton */
+    /**
+     *  Listener for activatingToggleButton
+     */
     private CompoundButton.OnCheckedChangeListener activatorToggleButtonListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             if (isChecked) {
                 Log.d(TAG, "ToggleButton Activated");
+                if (timeForMode || timeUpToMode) {
+                    setFinishTime();
+                    changeToTimeSummary(finishTime);
+                } else {
+                    changeTimeModeToNoModeSelected();
+                }
                 activateReplay();
+                disableGUI();
+                activated = true;
             } else {
                 Log.d(TAG, "ToggleButton Deactivated");
+
                 deactivateReplay();
+                enableGUI();
+                activated = false;
+                restoreTimeLayout();
             }
         }
     };
@@ -211,6 +225,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     private TextView activatedTillTextView;
     private TextView activatedTIMETextView;
     private TextView activatedCloseXTextView;
+    private boolean activated;
 
 
     @Override
@@ -290,8 +305,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             Double currentLongitude = intent.getDoubleExtra("longitude", 0);
             //  ... react to local broadcast message
             Log.d(TAG, "NOWE WSPÓŁRZEDNE " + currentLatitude + " " + currentLongitude);
-            Log.d(TAG, "NOWE WSPÓŁRZEDNE " + currentLatitude + " " + currentLongitude);
-            Log.d(TAG, "NOWE WSPÓŁRZEDNE " + currentLatitude + " " + currentLongitude);
         }
     };
 
@@ -301,6 +314,8 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         super.onResume();
         Log.d(TAG, "onResume()");
         checkIfServiceIsRunning();
+        checkIfReplayIsactivated();
+        restoreTimeLayout();
     }
 
     @Override
@@ -334,6 +349,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         outState.putString("message", messageEditText.getText().toString());
         outState.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
         outState.putInt("responseInterval", intervalSeekBar.getProgress());
+        outState.putBoolean("activated", activated);
     }
 
     /**
@@ -350,9 +366,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             messageEditText.setText(state.getString("message"));
             addLocationCheckBox.setChecked(state.getBoolean("gpsLocation"));
             intervalSeekBar.setProgress(state.getInt("responseInterval"));
+            activated = state.getBoolean("activated", false);
         } else {
             timeForMode = false;
             timeUpToMode = false;
+            activated = false;
         }
     }
 
@@ -465,6 +483,15 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         }
     }
 
+    private void checkIfReplayIsactivated() {
+        if (activated) {
+            disableGUI();
+
+        } else {
+            enableGUI();
+        }
+    }
+
     private boolean isBound = false;
 
     /**
@@ -505,27 +532,37 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
      * Activates replay message in the service
      */
     private void activateReplay() {
-        if (isBound) {
-            if (mService != null) {
-                Message msg = Message.obtain(null, AutoTextReplayService.MSG_SET_RESPOND_ACTION);
-                Bundle msgBundle = new Bundle();
-                msgBundle.putString("message", messageEditText.getText().toString());
-                msgBundle.putLong("finishTime", finishTime);
-                msgBundle.putInt("responseInterval", answerIntervalTime);
-                msgBundle.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
-                msg.setData(msgBundle);
-                msg.replyTo = messageActivtyService;
-                try {
-                    mService.send(msg);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "Error while sending activation replay message from activity to the service");
-                    e.printStackTrace();
-
+        if (isFinishTimeInFuture() || !(timeForMode || timeUpToMode)) {
+            /* if time mode was selected, selected time is in the future */
+            if (isBound) {
+                if (mService != null) {
+                    Message msg = Message.obtain(null, AutoTextReplayService.MSG_SET_RESPOND_ACTION);
+                    Bundle msgBundle = new Bundle();
+                    msgBundle.putString("message", messageEditText.getText().toString());
+                    msgBundle.putBoolean("timeFor", timeForMode);
+                    msgBundle.putBoolean("timeUpTo", timeUpToMode);
+                    msgBundle.putLong("finishTime", finishTime);
+                    msgBundle.putInt("responseInterval", answerIntervalTime);
+                    msgBundle.putBoolean("gpsLocation", addLocationCheckBox.isChecked());
+                    msg.setData(msgBundle);
+                    msg.replyTo = messageActivtyService;
+                    try {
+                        mService.send(msg);
+                        this.activated = true;
+                    } catch (RemoteException e) {
+                        Log.e(TAG, "Error while sending activation replay message from activity to the service");
+                        e.printStackTrace();
+                        this.activated = false;
+                    }
                 }
+            } else {
+                /* activity is not bound with the service */
+                Log.w(TAG,"activateReplay(): Activity is not bound with service. CAN'T SEND MSG");
             }
         } else {
-            Log.w(TAG,
-                    "activateReplay(): Activity is not bound with service. CAN'T SEND MSG");
+            /* if time mode was selected, selected time is in the past */
+            //TODO: dialog że nie można aktywować alarmu w przeszłości
+            Log.e(TAG, "Selected Time is in the past");
         }
     }
 
@@ -596,7 +633,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     }
 
     /**
-     *
+     * UP TO TIME DatePicker
      */
     public class SelectDateFragment extends DialogFragment implements DatePickerDialog.OnDateSetListener {
 
@@ -621,7 +658,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     }
 
     /**
-     *
+     * UP TO TIME TimePicker
      */
     public class UptoTimePickerFragment extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
 
@@ -640,10 +677,14 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         public void onTimeSet(TimePicker timePicker, int hour, int minute) {
             mHour = hour;
             mMinute = minute;
-            setFinishDateUpToTime();
+
+            changeTimeModeToUpToTime(mYear, mMonthOfYear, mDayOfMonth, mHour, mMinute);
         }
     }
 
+    /**
+     * FOR TIME TimePicker
+     */
     public class TimeForTimePickerFragment extends DialogFragment implements TimePickerDialog.OnTimeSetListener {
 
         @Override
@@ -659,49 +700,67 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         public void onTimeSet(TimePicker timePicker, int hour, int minute) {
             mHour = hour;
             mMinute = minute;
-            setFinishDateForTime();
+
+            changeTimeModeToForTime(hour, minute);
         }
     }
 
-    private void setFinishDateUpToTime() {
-        long newFinishTime = new GregorianCalendar(mYear, mMonthOfYear, mDayOfMonth, mHour, mMinute).getTimeInMillis();
-        this.setFinishTime(newFinishTime);
+
+    private void setFinishTime() {
+        Calendar calendarFinish = Calendar.getInstance();
+
+        if (timeUpToMode) {
+            /* up to time */
+            calendarFinish.set(Calendar.YEAR, mYear);
+            calendarFinish.set(Calendar.MONTH, mMonthOfYear);
+            calendarFinish.set(Calendar.DAY_OF_MONTH, mDayOfMonth);
+            calendarFinish.set(Calendar.SECOND, 0);
+            calendarFinish.set(Calendar.MILLISECOND, 0);
+            calendarFinish.set(Calendar.HOUR_OF_DAY, mHour);
+            calendarFinish.set(Calendar.MINUTE, mMinute);
+
+            finishTime = calendarFinish.getTimeInMillis();
+        } else {
+            finishTime = Calendar.getInstance().getTimeInMillis()
+                    + (mMinute * 60 * 1000) + (mHour * 60 * 60 * 1000);
+
+        }
     }
 
-    private void setFinishDateForTime() {
-        final Calendar calendar = Calendar.getInstance();
-        int year = calendar.get(Calendar.YEAR);
-        int month = calendar.get(Calendar.MONTH);
-        int day = calendar.get(Calendar.DAY_OF_MONTH);
-        int hour = calendar.get(Calendar.HOUR_OF_DAY);
-        int minute = calendar.get(Calendar.MINUTE);
-        int sec = calendar.get(Calendar.SECOND);
-        int millisec = calendar.get(Calendar.MILLISECOND);
-
-        long now = new GregorianCalendar(year, month, day, hour, minute).getTimeInMillis();
-        now += millisec + (sec * 1000);
-        long newFinishTime = now + (mMinute * 60 * 1000) + (mHour * 60 * 60 * 1000);
-        Log.i(TAG, "NOW: " + now);
-        Log.i(TAG, "FIN: " + newFinishTime);
-
-        this.setFinishTime(newFinishTime);
-        this.timeSummaryVisible();
+    private boolean isFinishTimeInFuture() {
+        Calendar calendarNow = Calendar.getInstance();
+        if (calendarNow.getTimeInMillis() < finishTime) {
+            /* future */
+            return true;
+        } else {
+            /* past */
+            return false;
+        }
     }
 
-    private void setFinishTime(long time) {
+    /**
+     * Sets finish time in millis and finish date.
+     *
+     * @param time - long in milliseconds
+     */
+    private void setFinishTimeDate(long time) {
         this.finishTime = time;
-       finishDate = new GregorianCalendar();
+        finishDate = new GregorianCalendar();
         finishDate.setTimeInMillis(time);
         Log.i(TAG, "New finish time: " + time + " " + finishDate.toString());
     }
 
-    private void timeSummaryVisible() {
+    /**
+     * Change Time section after activation to summary layout,
+     * if any mode was selected (up to or for).
+     */
+    private void changeToTimeSummary(long timeInMillis) {
         this.timeForRelativeLayout.setVisibility(View.GONE);
         this.timeUpToRelativeLayout.setVisibility(View.GONE);
         this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
 
         finishDate = new GregorianCalendar();
-        finishDate.setTimeInMillis(finishTime);
+        finishDate.setTimeInMillis(timeInMillis);
         this.activatedTIMETextView.setText("" + finishDate.get(GregorianCalendar.DAY_OF_MONTH) + "/"
                 + (finishDate.get(GregorianCalendar.MONTH) + 1) + "/" +
                 finishDate.get(GregorianCalendar.YEAR) + " " + finishDate.get(GregorianCalendar.HOUR_OF_DAY) + ":"
@@ -709,9 +768,99 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 + finishDate.get(GregorianCalendar.SECOND));
     }
 
-    private void timeSummaryGone() {
+    /**
+     * Show option "Time for" and "Up to"
+     */
+    private void changeToTimeModesMenu() {
         this.timeForRelativeLayout.setVisibility(View.VISIBLE);
         this.timeUpToRelativeLayout.setVisibility(View.VISIBLE);
         this.timeSelectedRelativeLayout.setVisibility(View.GONE);
+    }
+
+    /**
+     * Changing Time segment from buttons to "FOR TIME" inactive mode
+     *
+     * @param hour
+     * @param minutes
+     */
+    private void changeTimeModeToForTime(int hour, int minutes) {
+        this.timeForRelativeLayout.setVisibility(View.GONE);
+        this.timeUpToRelativeLayout.setVisibility(View.GONE);
+        this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
+
+        this.activatedTillTextView.setText("Activation for");
+
+        this.activatedTIMETextView.setText("" + hour + "h "
+                + ((minutes < 10) ? "0" + minutes : "" + minutes) + "min");
+
+        this.timeForMode = true;
+    }
+
+    /**
+     * Changing Time segment from buttons to "UP TO TIME" inactive mode
+     *
+     * @param year
+     * @param monthOfYear
+     * @param dayOfMonth
+     * @param hour
+     * @param minute
+     */
+    private void changeTimeModeToUpToTime(int year, int monthOfYear, int dayOfMonth, int hour, int minute) {
+        this.timeForRelativeLayout.setVisibility(View.GONE);
+        this.timeUpToRelativeLayout.setVisibility(View.GONE);
+        this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
+
+        this.activatedTillTextView.setText("Activation up to");
+
+        this.activatedTIMETextView.setText(""
+                + dayOfMonth + "/" + (monthOfYear + 1) + "/" + year + " "
+                + hour + ":" + ((minute < 10) ? "0" + minute : "" + minute));
+
+        this.timeUpToMode = true;
+    }
+
+    private void changeTimeModeToNoModeSelected() {
+        this.timeForRelativeLayout.setVisibility(View.GONE);
+        this.timeUpToRelativeLayout.setVisibility(View.GONE);
+        this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
+
+        this.activatedTillTextView.setText("No mode selected");
+
+        this.timeSelectedRelativeLayout.setVisibility(View.GONE);
+    }
+
+    /**
+     * Disable all controls for time when Replay msg is activated
+     */
+    private void disableGUI() {
+        this.activatedCloseXTextView.setVisibility(View.GONE);
+        this.activatedTillTextView.setEnabled(false);
+        this.messageEditText.setEnabled(false);
+        this.addLocationCheckBox.setEnabled(false);
+        this.intervalSeekBar.setEnabled(false);
+    }
+
+    /**
+     * Enable all controls for time when Replay msg is deactivated
+     */
+    private void enableGUI() {
+        this.activatedCloseXTextView.setVisibility(View.VISIBLE);
+        this.activatedTillTextView.setEnabled(true);
+        this.messageEditText.setEnabled(true);
+        this.addLocationCheckBox.setEnabled(true);
+        this.intervalSeekBar.setEnabled(true);
+        this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
+    }
+
+    private void restoreTimeLayout() {
+        if (activated) {
+            changeToTimeSummary(finishTime);
+        } else if (timeForMode) {
+            changeTimeModeToForTime(mHour, mMinute);
+        } else if (timeUpToMode) {
+            changeTimeModeToUpToTime(mYear, mMonthOfYear, mDayOfMonth, mHour, mMinute);
+        } else {
+            changeToTimeModesMenu();
+        }
     }
 }
