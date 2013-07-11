@@ -164,7 +164,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             builder.setMessage(R.string.dialog_no_message_msg).setTitle(R.string.dialog_no_message_title)
                     .setPositiveButton(R.string.go_back_and_write, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                          messageEditText.requestFocus();
+                            messageEditText.requestFocus();
                         }
                     });
             return builder.create();
@@ -212,6 +212,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     private CompoundButton.OnCheckedChangeListener activatorToggleButtonListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+            activationToggleButton.requestFocus();
             if (isChecked) {
                 Log.d(TAG, "ToggleButton Activated");
                 if (timeForMode || timeUpToMode) {
@@ -781,7 +782,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /**
      * Changing Time segment from buttons to "FOR TIME" inactive mode
      *
-     * @param hour - hours as integer
+     * @param hour    - hours as integer
      * @param minutes - minutes as integer
      */
     private void changeTimeModeToForTime(int hour, int minutes) {
@@ -800,11 +801,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /**
      * Changing Time segment from buttons to "UP TO TIME" inactive mode
      *
-     * @param year - integer
+     * @param year        - integer
      * @param monthOfYear - integer  (0-11)
-     * @param dayOfMonth - integer
-     * @param hour - integer
-     * @param minute - integer
+     * @param dayOfMonth  - integer
+     * @param hour        - integer
+     * @param minute      - integer
      */
     private void changeTimeModeToUpToTime(int year, int monthOfYear, int dayOfMonth, int hour, int minute) {
         this.timeForRelativeLayout.setVisibility(View.GONE);
@@ -857,7 +858,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     private void restoreTimeLayout() {
         if (activated) {
-            changeToTimeSummary(finishTime);
+            if (timeForMode || timeUpToMode) {
+                changeToTimeSummary(finishTime);
+            } else {
+                changeTimeModeToNoModeSelected();
+            }
         } else if (timeForMode) {
             changeTimeModeToForTime(mHour, mMinute);
         } else if (timeUpToMode) {
