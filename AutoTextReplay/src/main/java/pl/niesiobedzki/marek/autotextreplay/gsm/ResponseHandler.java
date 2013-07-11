@@ -1,8 +1,12 @@
 package pl.niesiobedzki.marek.autotextreplay.gsm;
 
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.telephony.SmsManager;
 import android.util.Log;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -30,6 +34,7 @@ public class ResponseHandler {
     private int repsondInterval;
 
 
+
 //    public ResponseHandler(String message, int repsondInterval) {
 //        this.message = message;
 //        this.repsondInterval = (long) repsondInterval * MIN_IN_MILLIS;
@@ -41,6 +46,7 @@ public class ResponseHandler {
         this.message = message;
         this.finishTime = finishTime;
         this.repsondInterval = responseInterval;
+
         Log.v(TAG, "New ResponseHandler: respondInterval: "
                 + this.repsondInterval + " ");
 
@@ -146,8 +152,13 @@ public class ResponseHandler {
             messageToSend += " "+  myLocation.toString();
         }
         SmsManager sms = SmsManager.getDefault();
+
+        ArrayList<String> messageParts = sms.divideMessage(messageToSend);
+
+
+
         Log.d(TAG, "sendSMS(" + phoneNumber + ", " + messageToSend + ")");
-        sms.sendTextMessage(phoneNumber, null, messageToSend, null, null);
+        sms.sendMultipartTextMessage(phoneNumber, null, messageParts, null, null);
         Log.d(TAG, "SMS sent");
         addPhoneNumber(phoneNumber);
     }
