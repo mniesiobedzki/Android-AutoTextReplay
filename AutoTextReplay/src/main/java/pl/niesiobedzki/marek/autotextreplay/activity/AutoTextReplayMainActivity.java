@@ -57,11 +57,12 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     public static final String PREFS_NAME = "ATRpref";
 
     final Messenger messageActivtyService = new Messenger(new IncomingHandler());
+    private Messenger mService = null;
 
     public static final int ACTIVATED = 1;
 
     /**
-     * TIME section
+     * TIME MODE
      */
 
     /* Time For/upTo/selected Layouts */
@@ -70,7 +71,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     private RelativeLayout timeSelectedRelativeLayout;
 
     private long finishTime;
-    private GregorianCalendar finishDate;
 
     private boolean timeForMode;
     private boolean timeUpToMode;
@@ -82,10 +82,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     private int mHour;
     private int mMinute;
 
-
-    /**
-     * Listener for clicks
-     */
+    /* Time modes' options listener - FOR and UP TO */
     private View.OnClickListener mClickListener = new View.OnClickListener() {
 
         @Override
@@ -115,11 +112,9 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
                 AutoTextReplayMainActivity.this.changeToTimeModesMenu();
 
-
             } else {
                 Log.w(TAG, "Unhandled OnClickListener for view " + (view.getId()) + " Resource name: " + getResources().getResourceEntryName(view.getId()));
             }
-
         }
     };
 
@@ -133,9 +128,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     private boolean gpsLocation;
 
-    /**
-     * Listener for Checkboxes in Message Section
-     */
+    /* Listener for Checkboxes in Message Section */
     private CompoundButton.OnCheckedChangeListener mOnCheckedChangeListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
@@ -147,7 +140,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 Log.d(TAG, "Checkbox Add location " + isChecked);
                 if (isChecked) {
 
-                    /** Check if enabled and if not display a dialog and suggesting togo to the settings */
+                    /* Check if enabled and if not display a dialog and suggesting togo to the settings */
                     LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
                     boolean enabled = service.isProviderEnabled(LocationManager.GPS_PROVIDER);
                     if (!enabled) {
@@ -161,10 +154,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         }
     };
 
-    /**
-     * NO MESSAGE DIALOG
-     * If message is empty
-     */
+    /* NO MESSAGE DIALOG If message is empty */
     public class FireMissilesDialogFragment extends DialogFragment {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -172,7 +162,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             builder.setMessage(R.string.dialog_no_message_msg).setTitle(R.string.dialog_no_message_title)
                     .setPositiveButton(R.string.go_back_and_write, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                            // FIRE ZE MISSILES!
+                          messageEditText.requestFocus();
                         }
                     });
             return builder.create();
@@ -211,8 +201,12 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     };
 
     /**
-     *  Listener for activatingToggleButton
+     * ACTIVATION section
      */
+    private boolean activated;
+    private ToggleButton activationToggleButton;
+
+    /* Listener for activatingToggleButton */
     private CompoundButton.OnCheckedChangeListener activatorToggleButtonListener = new CompoundButton.OnCheckedChangeListener() {
         @Override
         public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
@@ -224,14 +218,14 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 } else {
                     changeTimeModeToNoModeSelected();
                 }
-                if(messageEditText.getText().toString().length() == 0){
+                if (messageEditText.getText().toString().length() == 0) {
                     activationToggleButton.setChecked(false);
                     FireMissilesDialogFragment fragment = new FireMissilesDialogFragment();
                     fragment.show(getSupportFragmentManager(), "Enable");
                 } else {
-                activateReplay();
-                disableGUI();
-                activated = true;
+                    activateReplay();
+                    disableGUI();
+                    activated = true;
                 }
             } else {
                 Log.d(TAG, "ToggleButton Deactivated");
@@ -243,14 +237,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             }
         }
     };
-    private Messenger mService = null;
-    private SharedPreferences prefs;
-    private SharedPreferences.OnSharedPreferenceChangeListener listener;
+
+
     private TextView activatedTillTextView;
     private TextView activatedTIMETextView;
     private TextView activatedCloseXTextView;
-    private boolean activated;
-    private ToggleButton activationToggleButton;
 
 
     @Override
@@ -295,6 +286,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         addLocationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);
         addLocationCheckBox.setChecked(gpsLocation);
 
+        /* DURATION */
         interval_freq_desc_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_DESC_textView);
         interval_freq_number_textView = (TextView) findViewById(R.id.Main_Answer_Frequency_NUMBER_textView);
 
@@ -303,10 +295,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         intervalSeekBar.setProgress(25);
 
 
-        /*
-      ACTIVATION BUTTON
-     */
-
+        /* ACTIVATION BUTTON */
         activationToggleButton = (ToggleButton) findViewById(R.id.Main_ACTIVATE_ToggleButton);
         activationToggleButton.setOnCheckedChangeListener(activatorToggleButtonListener);
 
@@ -325,8 +314,6 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            Double currentSpeed = intent.getDoubleExtra("currentSpeed", 20);
             Double currentLatitude = intent.getDoubleExtra("latitude", 0);
             Double currentLongitude = intent.getDoubleExtra("longitude", 0);
             //  ... react to local broadcast message
@@ -439,10 +426,10 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         return timeInMinutes[group];
     }
 
-    /**
-     * for comunication service -> acrivity
-     */
-    final Messenger mMessenger = new Messenger(new IncomingHandler());
+//    /**
+//     * for comunication service -> acrivity
+//     */
+//    final Messenger mMessenger = new Messenger(new IncomingHandler());
 
     /**
      * Recieved message from service
@@ -583,7 +570,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 }
             } else {
                 /* activity is not bound with the service */
-                Log.w(TAG,"activateReplay(): Activity is not bound with service. CAN'T SEND MSG");
+                Log.w(TAG, "activateReplay(): Activity is not bound with service. CAN'T SEND MSG");
             }
         } else {
             /* if time mode was selected, selected time is in the past */
@@ -755,25 +742,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
 
     private boolean isFinishTimeInFuture() {
         Calendar calendarNow = Calendar.getInstance();
-        if (calendarNow.getTimeInMillis() < finishTime) {
-            /* future */
-            return true;
-        } else {
-            /* past */
-            return false;
-        }
-    }
-
-    /**
-     * Sets finish time in millis and finish date.
-     *
-     * @param time - long in milliseconds
-     */
-    private void setFinishTimeDate(long time) {
-        this.finishTime = time;
-        finishDate = new GregorianCalendar();
-        finishDate.setTimeInMillis(time);
-        Log.i(TAG, "New finish time: " + time + " " + finishDate.toString());
+        return calendarNow.getTimeInMillis() < finishTime;
     }
 
     /**
@@ -785,8 +754,9 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         this.timeUpToRelativeLayout.setVisibility(View.GONE);
         this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
 
-        finishDate = new GregorianCalendar();
+        GregorianCalendar finishDate = new GregorianCalendar();
         finishDate.setTimeInMillis(timeInMillis);
+        this.activatedTIMETextView.setVisibility(View.VISIBLE);
         this.activatedTIMETextView.setText("" + finishDate.get(GregorianCalendar.DAY_OF_MONTH) + "/"
                 + (finishDate.get(GregorianCalendar.MONTH) + 1) + "/" +
                 finishDate.get(GregorianCalendar.YEAR) + " " + finishDate.get(GregorianCalendar.HOUR_OF_DAY) + ":"
@@ -806,8 +776,8 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /**
      * Changing Time segment from buttons to "FOR TIME" inactive mode
      *
-     * @param hour
-     * @param minutes
+     * @param hour - hours as integer
+     * @param minutes - minutes as integer
      */
     private void changeTimeModeToForTime(int hour, int minutes) {
         this.timeForRelativeLayout.setVisibility(View.GONE);
@@ -815,7 +785,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
 
         this.activatedTillTextView.setText("Activation for");
-
+        this.activatedTIMETextView.setVisibility(View.VISIBLE);
         this.activatedTIMETextView.setText("" + hour + "h "
                 + ((minutes < 10) ? "0" + minutes : "" + minutes) + "min");
 
@@ -825,11 +795,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     /**
      * Changing Time segment from buttons to "UP TO TIME" inactive mode
      *
-     * @param year
-     * @param monthOfYear
-     * @param dayOfMonth
-     * @param hour
-     * @param minute
+     * @param year - integer
+     * @param monthOfYear - integer  (0-11)
+     * @param dayOfMonth - integer
+     * @param hour - integer
+     * @param minute - integer
      */
     private void changeTimeModeToUpToTime(int year, int monthOfYear, int dayOfMonth, int hour, int minute) {
         this.timeForRelativeLayout.setVisibility(View.GONE);
@@ -837,7 +807,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
 
         this.activatedTillTextView.setText("Activation up to");
-
+        this.activatedTIMETextView.setVisibility(View.VISIBLE);
         this.activatedTIMETextView.setText(""
                 + dayOfMonth + "/" + (monthOfYear + 1) + "/" + year + " "
                 + hour + ":" + ((minute < 10) ? "0" + minute : "" + minute));
@@ -851,8 +821,10 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         this.timeSelectedRelativeLayout.setVisibility(View.VISIBLE);
 
         this.activatedTillTextView.setText("No mode selected");
+        this.activatedTIMETextView.setText("");
+        this.activatedTIMETextView.setVisibility(View.GONE);
 
-        this.timeSelectedRelativeLayout.setVisibility(View.GONE);
+        //this.timeSelectedRelativeLayout.setVisibility(View.GONE);
     }
 
     /**
