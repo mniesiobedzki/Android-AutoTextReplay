@@ -24,10 +24,12 @@ import android.provider.Settings;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.InputType;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
@@ -279,8 +281,11 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         /* MESSAGE from user to replay */
         messageEditText = (EditText) findViewById(R.id.Main_Message_EditText);
         messageEditText.setEnabled(true);
-        messageEditText.setFocusable(false);
-        messageEditText.setFocusableInTouchMode(true);
+        messageEditText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        messageEditText.setSingleLine(true);
+        messageEditText.setLines(4);
+        messageEditText.setHorizontallyScrolling(false);
+        messageEditText.setImeOptions(EditorInfo.IME_ACTION_DONE);
 
         addLocationCheckBox = (CheckBox) findViewById(R.id.checkBox_add_location);
         addLocationCheckBox.setOnCheckedChangeListener(mOnCheckedChangeListener);

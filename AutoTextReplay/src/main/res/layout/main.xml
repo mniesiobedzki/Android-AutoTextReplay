@@ -163,7 +163,7 @@
                             android:layout_alignParentLeft="true"
                             android:layout_alignParentTop="true"
                             android:text="@string/activated_till"
-                            android:textColor="#ff0000"
+                            android:textColor="#000000"
                             android:layout_margin="5dp"
                             android:textSize="25sp"/>
 
@@ -176,7 +176,7 @@
                             android:layout_below="@+id/Main_Time_Selected_textView_Title"
                             android:text="@string/x_h_y_min"
                             android:layout_margin="5dp"
-                            android:textColor="#ff0000"
+                            android:textColor="#000000"
                             android:textSize="25sp"/>
 
                     <TextView
@@ -222,16 +222,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="120dp"
                     android:layout_alignParentLeft="true"
-
                     android:layout_below="@+id/Main_Message_TextView"
                     android:layout_margin="7dp"
-                    android:gravity="top"
-                    android:imeOptions="actionDone"
-                    android:inputType="textMultiLine"
-                    android:lines="4"
-                    android:nextFocusDown="@+id/checkBox_add_location" />
-
-
+                    android:gravity="top|left"
+                    android:scrollbars="vertical"
+                    android:minLines="1"
+                    android:maxLines="5"
+                    android:lines="3"
+                    android:nextFocusDown="@+id/checkBox_add_location"/>
 
             <CheckBox
                     android:id="@+id/checkBox_add_location"
