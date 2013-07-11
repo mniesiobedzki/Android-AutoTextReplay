@@ -162,6 +162,24 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     };
 
     /**
+     * NO MESSAGE DIALOG
+     * If message is empty
+     */
+    public class FireMissilesDialogFragment extends DialogFragment {
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(R.string.dialog_no_message_msg).setTitle(R.string.dialog_no_message_title)
+                    .setPositiveButton(R.string.go_back_and_write, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+                            // FIRE ZE MISSILES!
+                        }
+                    });
+            return builder.create();
+        }
+    }
+
+    /**
      * ANSWER INTERVAL section
      */
 
@@ -206,9 +224,15 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
                 } else {
                     changeTimeModeToNoModeSelected();
                 }
+                if(messageEditText.getText().toString().length() == 0){
+                    activationToggleButton.setChecked(false);
+                    FireMissilesDialogFragment fragment = new FireMissilesDialogFragment();
+                    fragment.show(getSupportFragmentManager(), "Enable");
+                } else {
                 activateReplay();
                 disableGUI();
                 activated = true;
+                }
             } else {
                 Log.d(TAG, "ToggleButton Deactivated");
 
@@ -226,6 +250,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
     private TextView activatedTIMETextView;
     private TextView activatedCloseXTextView;
     private boolean activated;
+    private ToggleButton activationToggleButton;
 
 
     @Override
@@ -260,7 +285,7 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         activatedCloseXTextView.setClickable(true);
         activatedCloseXTextView.setOnClickListener(mClickListener);
 
-        /* massage from user to replay */
+        /* MESSAGE from user to replay */
         messageEditText = (EditText) findViewById(R.id.Main_Message_EditText);
         messageEditText.setEnabled(true);
         messageEditText.setFocusable(false);
@@ -281,7 +306,8 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
         /*
       ACTIVATION BUTTON
      */
-        ToggleButton activationToggleButton = (ToggleButton) findViewById(R.id.Main_ACTIVATE_ToggleButton);
+
+        activationToggleButton = (ToggleButton) findViewById(R.id.Main_ACTIVATE_ToggleButton);
         activationToggleButton.setOnCheckedChangeListener(activatorToggleButtonListener);
 
         restoreMe(savedInstanceState);
@@ -863,4 +889,5 @@ public class AutoTextReplayMainActivity extends FragmentActivity {
             changeToTimeModesMenu();
         }
     }
+
 }

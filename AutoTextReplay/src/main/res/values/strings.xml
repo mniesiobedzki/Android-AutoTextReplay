@@ -34,5 +34,11 @@
     <string name="cancel">Cancel</string>
 
     <string name="x">X</string>
+    <string name="alert_dialog_ok">OK</string>
+    <string name="alert_dialog_cancel">Cancel</string>
+    <string name="dialog_no_message">Message field is empty</string>
+    <string name="go_back_and_write">OK</string>
+    <string name="dialog_no_message_msg">Please write a message to replay</string>
+    <string name="dialog_no_message_title">No message to repay</string>
 
 </resources>
