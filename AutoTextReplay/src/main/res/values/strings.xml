@@ -2,7 +2,7 @@
 <resources>
 
     <string name="time">Time</string>
-    <string name="app_name">AutoTextRespone</string>
+    <string name="app_name">AutoTextReplay</string>
     <string name="forTime">For</string>
     <string name="upTo">Up to</string>
     <string name="message">Response message</string>
